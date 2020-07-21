@@ -1,7 +1,39 @@
 extern crate z3;
 
+use std::rc::Rc;
+
 use z3::{DatatypeBuilder, SatResult, Solver, Sort};
 use z3::ast::{Ast, Datatype, Int};
+
+trait CARD {
+    type State;
+    type Effect;
+    type Conref;
+}
+
+enum Val<A> {
+    Var(String),
+    Const(A),
+}
+
+enum Comp<D: CARD, A> {
+    Ret(Val<A>),
+    Query(String, D::Conref, Rc<Comp<D,A>>),
+    Issue(D::Effect, Rc<Comp<D,A>>),
+}
+
+impl<D: CARD,A> Comp<D,A> {
+    fn ret(a: Val<A>) -> Comp<D,A> {
+        Comp::Ret(a)
+    }
+    fn query(x: String, c: D::Conref, m: Comp<D,A>) -> Comp<D,A> {
+        Comp::Query(x, c, Rc::new(m))
+    }
+    fn issue(e: D::Effect, m: Comp<D,A>) -> Comp<D,A> {
+        Comp::Issue(e, Rc::new(m))
+    }
+}
+    
 
 fn main() {
     let cfg = z3::Config::new();
