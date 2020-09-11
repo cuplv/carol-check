@@ -32,7 +32,7 @@ pub fn base_check_v<'l,D: CARD>(g: &Context<'l>, v: Val, a: ValT) -> bool {
 pub fn base_check_c<'l,D: CARD>(g: &Context<'l>, m: Comp, b: CompT) -> bool {
     match m {
         Comp::Return(v) => match b {
-            CompT::ReturnT(a) => base_check_v::<D>(g, v, a),
+            CompT::LiftT(a) => base_check_v::<D>(g, v, a),
             _ => false,
         }
         _ => unimplemented!(),

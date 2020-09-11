@@ -44,14 +44,17 @@ impl Comp {
     }
 }
 
+/// Computation types
 pub enum CompT {
-    ReturnT(ValT),
+    /// Type of a returner computation
+    LiftT(ValT),
+    /// Type of a function computation
     FnT(ValT, Rc<CompT>),
 }
 
 impl CompT {
     pub fn ct_return(a: ValT) -> CompT {
-        CompT::ReturnT(a)
+        CompT::LiftT(a)
     }
     pub fn ct_fn(a: ValT, m: CompT) -> CompT {
         CompT::FnT(a, Rc::new(m))
