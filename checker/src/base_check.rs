@@ -1,5 +1,4 @@
-use crate::ast::*;
-use crate::card::*;
+use carol_lang::*;
 
 pub enum Context<'a> {
     Empty,
@@ -7,14 +6,14 @@ pub enum Context<'a> {
 }
 
 impl<'a> Context<'a> {
-    fn lookup(&self, x: &str) -> Option<ValT> {
+    pub fn lookup(&self, x: &str) -> Option<ValT> {
         match self {
             Context::Empty => None,
             Context::Binding(y, a, g) =>
                 if x == y { Some(*a) } else { g.lookup(x) },
         }
     }
-    fn extend(&'a self, x: &str, a: ValT) -> Context<'a> {
+    pub fn extend(&'a self, x: &str, a: ValT) -> Context<'a> {
         Context::Binding(x.to_string(), a, self)
     }
 }

@@ -1,0 +1,10 @@
+[package]
+name = "demo"
+version = "0.1.0"
+authors = ["octalsrc <nicklewchenko92@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+carol_check = { path = "../checker" }
+carol_lang = { path = "../lang" }
+z3 = "0.6.0"

@@ -1,8 +1,7 @@
 extern crate z3;
 
-mod ast;
-mod card;
-mod base_check;
+extern crate carol_check;
+extern crate carol_lang;
 
 use z3::{DatatypeBuilder, SatResult, Solver, Sort};
 use z3::ast::{Ast, Datatype, Int};
