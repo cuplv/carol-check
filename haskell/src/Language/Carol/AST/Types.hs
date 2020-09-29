@@ -1,35 +1,33 @@
-{-# LANGUAGE TypeFamilies #-}
-
-module Language.Carol.AST.Types where
+module Language.Carol.AST.Types 
+  ( ValT (..)
+  , CompT (..)
+  , SumId (..)
+  , ProdId (..)
+  , ExTypeId (..)
+  ) where
 
 import Data.Map (Map)
 import qualified Data.Map as M
 
-data ValT d c a =
-    ThunkT c
-  | SumT (Map String a)
+newtype SumId = SumId String deriving (Show,Eq,Ord)
+
+newtype ProdId = ProdId String deriving (Show,Eq,Ord)
+
+newtype ExTypeId = ExTypeId Int deriving (Show,Eq,Ord)
+
+data ValT =
+    ThunkT CompT
+  | SumT (Map SumId ValT)
   | UnitT
-  | PairT a a
-  | DSV d
+  | PairT ValT ValT
+  | ExVar ExTypeId
   deriving (Show,Eq,Ord)
 
-data Fix f = Fix (f (Fix f))
+test :: ValT
+test = PairT (PairT UnitT UnitT) UnitT
 
-data ValTC d c = ValTC (Fix (ValT d c))
-
-test :: ValTC d c
-test = ValTC $ Fix $ PairT (Fix (PairT (Fix UnitT) (Fix UnitT))) (Fix UnitT)
-
-data ExT vt a = Ex String | Conc (vt a)
-
-data ValTE d c = ValTE (Fix (ExT (ValT d c)))
-
-data CompT vt a =
-    RetT (vt a)
-  | ProdT (Map String a)
-  | FunT (vt a) a
+data CompT =
+    RetT ValT
+  | ProdT (Map ProdId CompT)
+  | FunT ValT CompT
   deriving (Show,Eq,Ord)
-
-type CompTC d = Fix (CompT (ValTC d))
-
-type CompTE d = Fix (CompT (ValTE d))

@@ -11,7 +11,9 @@ extra-source-files:  CHANGELOG.md, README.md
 
 library
   exposed-modules:     Language.Carol.AST
+                     , Language.Carol.AST.Terms
                      , Language.Carol.AST.Types
+                     , Language.Carol.CARD
                      , Language.Carol.TypeCheck
                      , Language.Carol.TypeContext
   -- other-modules:

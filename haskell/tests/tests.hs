@@ -5,10 +5,10 @@ import Language.Carol.TypeCheck
 
 import System.Exit
 
-fun :: Comp EmptyD
-fun = Fun (VarId "x") (Ret (Var (VarId "x")))
+fun :: Comp
+fun = Fun (VarId "x", Ret (Var (VarId "x")))
 
-prog :: Comp EmptyD
+prog :: Comp
 prog = Ap Unit fun
 
 main = do

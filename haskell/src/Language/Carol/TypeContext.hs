@@ -6,15 +6,12 @@ module Language.Carol.TypeContext
   , isBound
   , highEx
   , newEx
-  , newEx2
   , bindEx
   , varBind
   , trimToVar
   , substV
   , substC
   , TErr
-  , MonoType (..)
-  , ExVarId
   ) where
 
 import Language.Carol.AST
@@ -24,24 +21,16 @@ import qualified Data.Map as M
 
 type TErr = Either String
 
-data ExVarId = ExVarId Int deriving (Show,Eq,Ord)
-
-data (Domain d) => MonoType d =
-    Concrete (ValT d)
-  | Exist ExVarId
-  deriving (Show,Eq,Ord)
-
-data (Domain d) => Context d = 
+data Context = 
     Empty
-  | ExInit ExVarId (Context d)
-  | ExBind ExVarId (MonoType d) (Context d)
-  | VarBind VarId (MonoType d) (Context d)
-  deriving (Show,Eq,Ord)
+  | ExInit ExTypeId Context
+  | ExBind ExTypeId ValT Context
+  | VarBind VarId ValT Context
 
-emptyContext :: (Domain d) => Context d
+emptyContext :: Context
 emptyContext = Empty
 
-isBound :: (Domain d) => VarId -> Context d -> Maybe (MonoType d)
+isBound :: VarId -> Context -> Maybe ValT
 isBound x = \case
   Empty -> Nothing
   ExInit _ g' -> isBound x g'
@@ -50,35 +39,32 @@ isBound x = \case
                        then Just t
                        else isBound x g'
 
-existStatus :: (Domain d) => ExVarId -> Context d -> Maybe (Maybe (MonoType d))
+data ExStatus = ExNonExist | ExUnBound | ExBound ValT
+
+existStatus :: ExTypeId -> Context -> ExStatus
 existStatus a = \case
-  Empty -> Nothing
+  Empty -> ExNonExist
   ExInit b g' -> if a == b
-                    then Just Nothing
+                    then ExUnBound
                     else existStatus a g'
   ExBind b t g' -> if a == b
-                      then Just (Just t)
+                      then ExBound t
                       else existStatus a g'
   VarBind _ _ g' -> existStatus a g'
 
-highEx :: (Domain d) => Context d -> ExVarId
+highEx :: Context -> ExTypeId
 highEx = \case
             ExInit a _ -> a
             ExBind a _ _ -> a
-            Empty -> ExVarId 0
+            Empty -> ExTypeId 0
             VarBind _ _ g' -> highEx g'
 
-newEx :: (Domain d) => Context d -> (Context d, ExVarId)
-newEx g = let ExVarId i = highEx g
-              a = ExVarId $ i + 1
+newEx :: Context -> (Context, ExTypeId)
+newEx g = let ExTypeId i = highEx g
+              a = ExTypeId $ i + 1
           in (ExInit a g, a)
 
-newEx2 :: (Domain d) => Context d -> (Context d, ExVarId, ExVarId)
-newEx2 g = let (g',a) = newEx g
-               (g'',b) = newEx g'
-           in (g'',a,b)
-
-bindEx :: (Domain d) => ExVarId -> MonoType d -> Context d -> TErr (Context d)
+bindEx :: ExTypeId -> ValT -> Context -> TErr Context
 bindEx a t = \case
   Empty -> Left $ show a ++ " does not exist in the context."
   ExInit b g | a == b -> return $ ExBind a t g
@@ -86,10 +72,10 @@ bindEx a t = \case
   ExBind b t1 g | a /= b -> ExBind b t <$> bindEx a t g
   VarBind x t1 g -> VarBind x t1 <$> bindEx a t g
 
-varBind :: (Domain d) => VarId -> MonoType d -> Context d -> Context d
+varBind :: VarId -> ValT -> Context -> Context
 varBind = VarBind
 
-trimToVar :: (Domain d) => VarId -> Context d -> TErr (Context d, MonoType d)
+trimToVar :: VarId -> Context -> TErr (Context, ValT)
 trimToVar x = \case
   Empty -> Left $ "Trim to var " ++ show x ++ " failed."
   ExInit _ g' -> trimToVar x g'
@@ -98,15 +84,25 @@ trimToVar x = \case
                        then Right (g',t)
                        else trimToVar x g'
 
-substV :: (Domain d) => Context d -> MonoType d -> TErr (ValT d)
+substV :: Context -> ValT -> TErr ValT
 substV g = \case
-  Concrete vt -> return vt
-  Exist a -> case existStatus a g of
-               Just (Just t) -> substV g t
-               Just Nothing -> Left $ show a ++ " was left unsolved."
-               Nothing -> Left $ show a ++ " doesn't exist?"
+  ThunkT mt -> ThunkT <$> substC g mt
+  SumT ss -> do
+    let sl = M.toList ss
+    sl' <- mapM (\(i,vt) -> (,) <$> return i <*> substV g vt) sl
+    return $ SumT (M.fromList sl')
+  UnitT -> return UnitT
+  PairT vt1 vt2 -> PairT <$> substV g vt1 <*> substV g vt2
+  ExVar a -> case existStatus a g of
+    ExBound t -> substV g t
+    ExUnBound -> Left $ show a ++ " was left unsolved."
+    ExNonExist -> Left $ show a ++ " doesn't exist?"
 
-substC :: (Domain d) => Context d -> CompT (MonoType d) -> TErr (CompT (ValT d))
+substC :: Context -> CompT -> TErr CompT
 substC g = \case
   RetT vt -> RetT <$> substV g vt
+  ProdT pp -> do
+    let pl = M.toList pp
+    pl' <- mapM (\(i,mt) -> (,) <$> return i <*> substC g mt) pl
+    return $ ProdT (M.fromList pl')
   FunT vt mt -> FunT <$> substV g vt <*> substC g mt
