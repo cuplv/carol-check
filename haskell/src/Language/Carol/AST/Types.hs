@@ -1,5 +1,6 @@
 module Language.Carol.AST.Types 
   ( ValT (..)
+  , boolT
   , CompT (..)
   , SumId (..)
   , ProdId (..)
@@ -19,9 +20,16 @@ data ValT =
     ThunkT CompT
   | SumT (Map SumId ValT)
   | UnitT
+  | IntT
   | PairT ValT ValT
   | ExVar ExTypeId
   deriving (Show,Eq,Ord)
+
+trueS = SumId "True"
+falseS = SumId "False"
+
+boolT :: ValT
+boolT = SumT (M.fromList [(trueS,UnitT), (falseS,UnitT)])
 
 test :: ValT
 test = PairT (PairT UnitT UnitT) UnitT

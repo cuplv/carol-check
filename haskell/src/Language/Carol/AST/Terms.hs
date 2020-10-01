@@ -1,5 +1,9 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Language.Carol.AST.Terms 
   ( Val (..)
+  , Op (..)
+  , opSig
   , Comp (..)
   , VarId (..)
   ) where
@@ -11,11 +15,30 @@ import Language.Carol.AST.Types
 
 newtype VarId = VarId String deriving (Show,Eq,Ord)
 
+data Op = 
+    Add
+  | Sub
+  | Neg
+  | TestEq
+  | TestLe
+  | TestGe
+  deriving (Show,Eq,Ord)
+
+opSig :: Op -> ([ValT], ValT)
+opSig = \case
+  Add -> ([IntT,IntT], IntT)
+  Sub -> ([IntT,IntT], IntT)
+  Neg -> ([IntT], IntT)
+  TestEq -> ([IntT,IntT], boolT)
+  TestLe -> ([IntT,IntT], boolT)
+  TestGe -> ([IntT,IntT], boolT)
+
 data Val =
     Var VarId
   | Thunk Comp
   | Sum (Map SumId Val)
   | Unit
+  | IntConst Int
   | Pair Val Val
   | Anno Val ValT
   deriving (Show,Eq,Ord)
@@ -31,4 +54,5 @@ data Comp =
   | Pms Val (Map SumId (VarId, Comp))
   | Proj ProdId Comp
   | Ap Val Comp
+  | Pute [Val] Op (VarId, Comp)
   deriving (Show,Eq,Ord)

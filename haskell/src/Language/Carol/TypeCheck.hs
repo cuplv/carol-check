@@ -10,6 +10,7 @@ module Language.Carol.TypeCheck
   , Ctx.substC
   ) where
 
+import Control.Monad (foldM)
 import Language.Carol.AST
 import Language.Carol.TypeContext (Context, TErr)
 import qualified Language.Carol.TypeContext as Ctx
@@ -30,6 +31,7 @@ synthV g = \case
              Just t -> Right (t,g)
   Thunk m -> undefined
   Unit -> return (UnitT, g)
+  IntConst _ -> return (IntT, g)
   Pair v1 v2 -> do
     (vt1,g1) <- synthV g v1
     (vt2,g2) <- synthV g1 v2
@@ -59,3 +61,7 @@ synthC g = \case
         g2 <- checkV g1 v vt
         return (mt2, g2)
       _ -> Left $ "Ap to non-function " ++ show m ++ " (" ++ show mt ++ ")"
+  Pute vs op (x,m') -> do
+    let (vts,outt) = opSig op
+    g' <- foldM (\g (v,vt) -> checkV g v vt) g (zip vs vts)
+    synthC (Ctx.varBind x outt g') m'
