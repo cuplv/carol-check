@@ -23,7 +23,9 @@ checkV g v vt = do
   (vt1,g1) <- synthV g v
   case (vt,vt1) of
     (ExVar a, vt1) -> Ctx.bindEx a vt1 g1
+    (vt,ExVar a) -> Ctx.bindEx a vt g1
     _ | vt == vt1 -> return g1
+    _ -> Left $ show vt ++ " does not match " ++ show vt1
 
 synthV :: Context -> Val -> TErr (ValT, Context)
 synthV g = \case

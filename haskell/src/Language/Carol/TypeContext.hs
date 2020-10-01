@@ -68,7 +68,9 @@ bindEx :: ExTypeId -> ValT -> Context -> TErr Context
 bindEx a t = \case
   Empty -> Left $ show a ++ " does not exist in the context."
   ExInit b g | a == b -> return $ ExBind a t g
-  ExBind b t1 g | a == b -> Left $ show a ++ " is already solved?"
+  ExBind b t1 g | a == b && t == t1 -> return g
+  ExBind b t1 g | a == b && t /= t1 -> Left $ 
+    show a ++ " is already solved to non-match, " ++ show t1 ++ " != " ++ show t
   ExBind b t1 g | a /= b -> ExBind b t <$> bindEx a t g
   VarBind x t1 g -> VarBind x t1 <$> bindEx a t g
 
@@ -92,6 +94,7 @@ substV g = \case
     sl' <- mapM (\(i,vt) -> (,) <$> return i <*> substV g vt) sl
     return $ SumT (M.fromList sl')
   UnitT -> return UnitT
+  IntT -> return IntT
   PairT vt1 vt2 -> PairT <$> substV g vt1 <*> substV g vt2
   ExVar a -> case existStatus a g of
     ExBound t -> substV g t

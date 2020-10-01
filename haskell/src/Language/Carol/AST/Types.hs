@@ -1,6 +1,9 @@
 module Language.Carol.AST.Types 
   ( ValT (..)
   , boolT
+  , boolSchema
+  , trueS
+  , falseS
   , CompT (..)
   , SumId (..)
   , ProdId (..)
@@ -28,8 +31,10 @@ data ValT =
 trueS = SumId "True"
 falseS = SumId "False"
 
+boolSchema = M.fromList [(trueS,UnitT), (falseS,UnitT)]
+
 boolT :: ValT
-boolT = SumT (M.fromList [(trueS,UnitT), (falseS,UnitT)])
+boolT = SumT boolSchema
 
 test :: ValT
 test = PairT (PairT UnitT UnitT) UnitT

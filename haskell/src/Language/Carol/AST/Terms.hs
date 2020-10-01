@@ -2,6 +2,7 @@
 
 module Language.Carol.AST.Terms 
   ( Val (..)
+  , boolV
   , Op (..)
   , opSig
   , Comp (..)
@@ -36,12 +37,18 @@ opSig = \case
 data Val =
     Var VarId
   | Thunk Comp
-  | Sum (Map SumId Val)
+  | Sum (Map SumId ValT) SumId Val
   | Unit
   | IntConst Int
   | Pair Val Val
   | Anno Val ValT
   deriving (Show,Eq,Ord)
+
+boolV :: Bool -> Val
+boolV b = Sum boolSchema i Unit
+  where i = if b
+               then trueS
+               else falseS
 
 data Comp =
     Ret Val
