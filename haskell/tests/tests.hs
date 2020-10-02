@@ -6,14 +6,14 @@ import Language.Carol.TypeCheck
 
 import System.Exit
 
-pComp :: String -> IO Comp
+pComp :: String -> IO Comp'
 pComp s = case parseComp s of
             Right m -> return m
             Left e -> die (show e)
 
 main = do
   prog <- pComp "{=} ` ?x.return x"
-  case synthC emptyContext prog of
+  case synthC prog emptyContext of
     Right (mt,g) -> case substC g mt of
       Right (RetT UnitT) -> return ()
       Right mt -> die (show mt)

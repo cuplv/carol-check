@@ -49,10 +49,10 @@ pairTP = do
   bt <- vtypeP
   return (PairT at bt)
 
-parseComp :: String -> Either ParseError Comp
+parseComp :: String -> Either ParseError Comp'
 parseComp = parse compP ""
 
-compP :: Parsec String s Comp
+compP :: Parsec String s Comp'
 compP = choice $ map try [retP,funP,apP,parensP compP]
 
 parensP :: Parsec String s a -> Parsec String s a
@@ -82,7 +82,7 @@ apP = do
   m <- compP
   return (Ap v m)
 
-valP :: Parsec String s Val
+valP :: (Domain d) => Parsec String s (Val d)
 valP = do
   v <- choice $ map try
          [varP
@@ -102,17 +102,18 @@ annoEndP = spaces >> char ':' >> spaces >> vtypeP
 varP = Var <$> varIdentP
 unitP = string "{=}" >> return Unit
 
-intP :: Parsec String s Val
+intP :: (Domain d) => Parsec String s (Val d)
 intP = (IntConst . read) <$> many1 digit
 
+pairP :: (Domain d) => Parsec String s (Val d)
 pairP = parensP $ do
   a <- valP
   spaces >> char ',' >> spaces
   b <- valP
   return (Pair a b)
 
-trueP :: Parsec String s Val
+trueP :: (Domain d) => Parsec String s (Val d)
 trueP = string "True" >> return (boolV True)
 
-falseP :: Parsec String s Val
+falseP :: (Domain d) => Parsec String s (Val d)
 falseP = string "False" >> return (boolV False)

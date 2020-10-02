@@ -3,10 +3,11 @@
 module Language.Carol.AST.Terms 
   ( Val (..)
   , boolV
-  , Op (..)
-  , opSig
   , Comp (..)
+  , Comp'
   , VarId (..)
+  , Domain (..)
+  , EmptyD
   ) where
 
 import Data.Map (Map)
@@ -14,52 +15,66 @@ import qualified Data.Map as M
 
 import Language.Carol.AST.Types
 
+class (Show d, Eq d, Ord d) => Domain d where
+  domStateType :: d -> ValT
+  domEffectType :: d -> ValT
+  domEffectDef :: d -> Val d -> Val d -> Val d
+  domOrderType :: d -> ValT
+  domOrderDef :: d -> Val d -> (Val d,Val d) -> Bool
+  domOrderFp :: d -> Val d -> Val d -> Bool
+
+data EmptyD
+
+instance Show EmptyD where
+  show = undefined
+
+instance Eq EmptyD where
+  a == b = undefined
+
+instance Ord EmptyD where
+  a <= b = undefined
+
+instance Domain EmptyD where
+  domStateType = undefined
+  domEffectType = undefined
+  domEffectDef = undefined
+  domOrderType = undefined
+  domOrderDef = undefined
+  domOrderFp = undefined
+
 newtype VarId = VarId String deriving (Show,Eq,Ord)
 
-data Op = 
-    Add
-  | Sub
-  | Neg
-  | TestEq
-  | TestLe
-  | TestGe
-  deriving (Show,Eq,Ord)
-
-opSig :: Op -> ([ValT], ValT)
-opSig = \case
-  Add -> ([IntT,IntT], IntT)
-  Sub -> ([IntT,IntT], IntT)
-  Neg -> ([IntT], IntT)
-  TestEq -> ([IntT,IntT], boolT)
-  TestLe -> ([IntT,IntT], boolT)
-  TestGe -> ([IntT,IntT], boolT)
-
-data Val =
+data (Domain d) => Val d =
     Var VarId
-  | Thunk Comp
-  | Sum (Map SumId ValT) SumId Val
+  | Thunk (Comp d)
+  | Sum (Map SumId ValT) SumId (Val d)
   | Unit
   | IntConst Int
-  | Pair Val Val
-  | Anno Val ValT
+  | Pair (Val d) (Val d)
+  | Anno (Val d) ValT
   deriving (Show,Eq,Ord)
 
-boolV :: Bool -> Val
+boolV :: (Domain d) => Bool -> Val d
 boolV b = Sum boolSchema i Unit
   where i = if b
                then trueS
                else falseS
 
-data Comp =
-    Ret Val
-  | Prod (Map ProdId Comp)
-  | Fun (VarId, Comp)
-  | Let Val (VarId, Comp)
-  | Bind Comp (VarId, Comp)
-  | Force Val
-  | Pmp Val (VarId, VarId, Comp)
-  | Pms Val (Map SumId (VarId, Comp))
-  | Proj ProdId Comp
-  | Ap Val Comp
-  | Pute [Val] Op (VarId, Comp)
+type Abst d = (VarId, Comp d)
+
+data (Domain d) => Comp d =
+    Ret (Val d)
+  | Prod (Map ProdId (Comp d))
+  | Fun (Abst d)
+  | Let (Val d) (Abst d)
+  | Bind (Comp d) (Abst d)
+  | Force (Val d)
+  | Pmp (Val d) (VarId, VarId, Comp d)
+  | Pms (Val d) (Map SumId (Abst d))
+  | Proj ProdId (Comp d)
+  | Ap (Val d) (Comp d)
+  | DMod d (Val d) (Val d) (Abst d)
+  | DTest d (Val d) (Val d, Val d) (Abst d)
   deriving (Show,Eq,Ord)
+
+type Comp' = Comp EmptyD
