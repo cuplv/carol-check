@@ -32,6 +32,9 @@ synthV v g = case v of
   Var x -> case Ctx.isBound x g of
              Just t -> Right (t,g)
   Thunk m -> undefined
+  Sum sc i v' -> case M.lookup i sc of
+    Just vt -> checkV v' vt g >>= \g' -> return (SumT sc, g')
+    Nothing -> Left $ show i ++ " not in " ++ show sc
   Unit -> return (UnitT, g)
   IntConst _ -> return (IntT, g)
   Pair v1 v2 -> do
@@ -46,6 +49,13 @@ checkC :: (Domain d) => Comp d -> CompT -> Context -> TErr Context
 checkC m mt g = case (m,mt) of
                   _ -> undefined
 
+dst :: (Domain d) => d -> ValT
+dst = domStateType
+det :: (Domain d) => d -> ValT
+det = domEffectType
+dot :: (Domain d) => d -> ValT
+dot = domOrderType
+
 synthC :: (Domain d) => Comp d -> Context -> TErr (CompT, Context)
 synthC m g = case m of
   Ret v -> do
@@ -59,17 +69,15 @@ synthC m g = case m of
   Ap v m -> do
     (mt,g1) <- synthC m g
     case mt of
-      FunT vt mt2 -> do
-        g2 <- checkV v vt g1
-        return (mt2, g2)
+      FunT vt mt2 -> (,) <$> pure mt2 <*> checkV v vt g1
       _ -> Left $ "Ap to non-function " ++ show m ++ " (" ++ show mt ++ ")"
-  DMod d op arg (x,m') ->
-     synthC m' 
-     =<< (Ctx.varBind x (domStateType d) 
-          <$> (checkV arg (domStateType d) 
-               =<< checkV op (domEffectType d) g))
+  DMod d op arg (x,m') -> 
+    synthC m'
+    =<< return . Ctx.varBind x (dst d)
+    =<< checkV arg (dst d)
+    =<< checkV op (det d) g
   DTest d op (arg1,arg2) (x,m') ->
-    checkV op (domOrderType d) g
-    >>= checkV arg1 (domStateType d) 
-    >>= checkV arg2 (domStateType d)
-    >>= synthC m'
+    synthC m'
+    =<< checkV arg2 (dst d)
+    =<< checkV arg1 (dst d)
+    =<< checkV op (dot d) g

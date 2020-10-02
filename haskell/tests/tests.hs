@@ -12,10 +12,14 @@ pComp s = case parseComp s of
             Left e -> die (show e)
 
 main = do
-  prog <- pComp "{=} ` ?x.return x"
+  prog <- pComp
+            "  +1`          |a|  \
+            \  5`           |x|  \
+            \  mod a <- x as y|  \
+            \  return y          "
   case synthC prog emptyContext of
     Right (mt,g) -> case substC g mt of
-      Right (RetT UnitT) -> return ()
+      Right (RetT IntT) -> return ()
       Right mt -> die (show mt)
       Left e -> die e
     Left e -> die e

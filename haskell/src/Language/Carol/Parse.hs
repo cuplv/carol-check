@@ -50,11 +50,34 @@ pairTP = do
   return (PairT at bt)
 
 parseComp :: String -> Either ParseError Comp'
-parseComp = parse compP ""
+parseComp = parse (spaces >> compP) ""
 
 compP :: Parsec String s Comp'
-compP = choice $ map try [retP,funP,apP,parensP compP]
+compP = choice $ map try [retP,funP,apP,testP,modP,parensP compP]
 
+
+testP :: Parsec String s Comp'
+testP = do
+  string "test" >> spaces
+  op <- valP
+  arg1 <- spaces >> string "<-" >> spaces >> valP
+  arg2 <- spaces >> char ',' >> spaces >> valP
+  spaces >> string "as" >> spaces
+  x <- varIdentP
+  spaces >> char '|' >> spaces
+  m' <- compP
+  return $ DTest domain' op (arg1,arg2) (x,m')
+
+modP :: Parsec String s Comp'
+modP = do
+  string "mod" >> spaces
+  op <- valP
+  arg <- spaces >> string "<-" >> spaces >> valP
+  spaces >> string "as" >> spaces
+  x <- varIdentP
+  spaces >> char '|' >> spaces
+  m' <- compP
+  return $ DMod domain' op arg (x,m')
 parensP :: Parsec String s a -> Parsec String s a
 parensP = between (char '(' >> spaces) (spaces >> char ')')
 
@@ -66,12 +89,11 @@ retP = do
 varIdentP :: Parsec String s VarId
 varIdentP = VarId <$> ((:) <$> letter <*> many alphaNum)
 
+funVar :: Parsec String s VarId
+funVar = between (char '|' >> spaces) (spaces >> char '|') varIdentP
+
 funP = do
-  char '?'
-  spaces
-  x <- varIdentP
-  spaces
-  char '.'
+  x <- funVar
   spaces
   m <- compP
   return $ Fun (x,m)
@@ -91,6 +113,10 @@ valP = do
          ,pairP
          ,trueP
          ,falseP
+         ,addP
+         ,subP
+         ,leqP
+         ,geqP
          ,parensP valP]
   mvt <- optionMaybe (try annoEndP)
   case mvt of
@@ -103,7 +129,10 @@ varP = Var <$> varIdentP
 unitP = string "{=}" >> return Unit
 
 intP :: (Domain d) => Parsec String s (Val d)
-intP = (IntConst . read) <$> many1 digit
+intP = ((IntConst . read) <$> (char '-' >> many1 digit)) <|> natP
+
+natP :: (Domain d) => Parsec String s (Val d)
+natP = (IntConst . read) <$> many1 digit
 
 pairP :: (Domain d) => Parsec String s (Val d)
 pairP = parensP $ do
@@ -117,3 +146,15 @@ trueP = string "True" >> return (boolV True)
 
 falseP :: (Domain d) => Parsec String s (Val d)
 falseP = string "False" >> return (boolV False)
+
+addP :: (Domain d) => Parsec String s (Val d)
+addP = addV <$> (char '+' >> natP)
+
+subP :: (Domain d) => Parsec String s (Val d)
+subP = subV <$> (char '-' >> natP)
+
+leqP :: (Domain d) => Parsec String s (Val d)
+leqP = string "LEQ" >> return leqV
+
+geqP :: (Domain d) => Parsec String s (Val d)
+geqP = string "GEQ" >> return geqV
