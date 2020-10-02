@@ -13,8 +13,8 @@ pComp s = case parseComp s of
 
 main = do
   prog <- pComp
-            "  +1`          |a|  \
-            \  5`           |x|  \
+            "  5` +1`          |a|  \
+            \             |x|  \
             \  mod a <- x as y|  \
             \  return y          "
   case synthC prog emptyContext of

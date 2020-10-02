@@ -26,6 +26,16 @@ data Context =
   | ExInit ExTypeId Context
   | ExBind ExTypeId ValT Context
   | VarBind VarId ValT Context
+  deriving (Eq,Ord)
+
+instance Show Context where
+  show Empty = "*"
+  show (ExInit (ExTypeId a) g) = 
+    show g ++ ", <" ++ show a ++ ">"
+  show (ExBind (ExTypeId a) vt g) = 
+    show g ++ ", <" ++ show a ++ "> = " ++ show vt
+  show (VarBind (VarId x) vt g) = 
+    show g ++ ", " ++ x ++ " : " ++ show vt
 
 emptyContext :: Context
 emptyContext = Empty
@@ -99,8 +109,9 @@ substV g = \case
   PairT vt1 vt2 -> PairT <$> substV g vt1 <*> substV g vt2
   ExVar a -> case existStatus a g of
     ExBound t -> substV g t
-    ExUnBound -> Left $ show a ++ " was left unsolved."
-    ExNonExist -> Left $ show a ++ " doesn't exist?"
+    ExUnBound -> return $ ExVar a
+    -- ExUnBound -> Left $ show a ++ " was left unsolved."
+    ExNonExist -> Left $ show a ++ " doesn't exist? " ++ show g
 
 substC :: Context -> CompT -> TErr CompT
 substC g = \case

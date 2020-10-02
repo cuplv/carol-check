@@ -64,12 +64,22 @@ synthC m g = case m of
   Fun (x,m') -> do
     let (g1,a) = Ctx.newEx g
     (mt,g2) <- synthC m' (Ctx.varBind x (ExVar a) g1)
+    mt' <- Ctx.substC g2 mt
     (g3,_) <- Ctx.trimToVar x g2
-    return (FunT (ExVar a) mt, g3)
+    return (FunT (ExVar a) mt', g3)
   Ap v m -> do
     (mt,g1) <- synthC m g
     case mt of
       FunT vt mt2 -> (,) <$> pure mt2 <*> checkV v vt g1
+      -- -- The following alternative case performs an extra substV on
+      -- -- vt that the bidir algorithm rules seem to ask for, but
+      -- -- which is not so far needed for tests.  This can be deleted
+      -- -- if it is still not needed after sufficient testing.
+      --
+      -- FunT vt mt2 -> do
+      --   vt' <- Ctx.substV g1 vt
+      --   g2 <- checkV v vt' g1
+      --   return (mt2,g2)
       _ -> Left $ "Ap to non-function " ++ show m ++ " (" ++ show mt ++ ")"
   DMod d op arg (x,m') -> 
     synthC m'
@@ -78,6 +88,7 @@ synthC m g = case m of
     =<< checkV op (det d) g
   DTest d op (arg1,arg2) (x,m') ->
     synthC m'
+    =<< return . Ctx.varBind x boolT
     =<< checkV arg2 (dst d)
     =<< checkV arg1 (dst d)
     =<< checkV op (dot d) g
