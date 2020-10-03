@@ -51,8 +51,8 @@ checkC m mt g = case (m,mt) of
 
 dst :: (Domain d) => d -> ValT
 dst = domStateType
-det :: (Domain d) => d -> ValT
-det = domEffectType
+dmt :: (Domain d) => d -> ValT
+dmt = domModType
 dot :: (Domain d) => d -> ValT
 dot = domOrderType
 
@@ -85,7 +85,7 @@ synthC m g = case m of
     synthC m'
     =<< return . Ctx.varBind x (dst d)
     =<< checkV arg (dst d)
-    =<< checkV op (det d) g
+    =<< checkV op (dmt d) g
   DTest d op (arg1,arg2) (x,m') ->
     synthC m'
     =<< return . Ctx.varBind x boolT

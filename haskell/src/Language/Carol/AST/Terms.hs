@@ -9,7 +9,7 @@ module Language.Carol.AST.Terms
   , VarId (..)
   , Domain (..)
   , EmptyD
-  , IntD
+  , IntD (..)
   , addV
   , subV
   , leqV
@@ -23,8 +23,8 @@ import Language.Carol.AST.Types
 
 class (Show d, Eq d, Ord d) => Domain d where
   domStateType :: d -> ValT
-  domEffectType :: d -> ValT
-  domEffectDef :: d -> Val d -> Val d -> Val d
+  domModType :: d -> ValT
+  domModDef :: d -> Val d -> Val d -> Val d
   domOrderType :: d -> ValT
   domOrderDef :: d -> Val d -> (Val d,Val d) -> Bool
   domOrderFp :: d -> Val d -> Val d -> Bool
@@ -39,8 +39,8 @@ instance Ord EmptyD where
   a <= b = undefined
 instance Domain EmptyD where
   domStateType = undefined
-  domEffectType = undefined
-  domEffectDef = undefined
+  domModType = undefined
+  domModDef = undefined
   domOrderType = undefined
   domOrderDef = undefined
   domOrderFp = undefined
@@ -57,19 +57,19 @@ intDOrdSum = M.fromList
 
 instance Domain IntD where
   domStateType _ = IntT
-  domEffectType _ = SumT intDEffSum
-  domEffectDef _ (Sum _ (SumId "Add") (IntConst b)) (IntConst a) = 
+  domModType _ = SumT intDEffSum
+  domModDef _ (Sum _ (SumId "Add") (IntConst b)) (IntConst a) =
     IntConst (a + b)
-  domEffectDef _ (Sum _ (SumId "Sub") (IntConst b)) (IntConst a) = 
+  domModDef _ (Sum _ (SumId "Sub") (IntConst b)) (IntConst a) =
     IntConst (a - b)
   domOrderType _ = SumT intDOrdSum
-  domOrderDef _ (Sum _ (SumId "LEQ") _) (IntConst a, IntConst b) = 
+  domOrderDef _ (Sum _ (SumId "LEQ") _) (IntConst a, IntConst b) =
     a <= b
-  domOrderDef _ (Sum _ (SumId "GEQ") _) (IntConst a, IntConst b) = 
+  domOrderDef _ (Sum _ (SumId "GEQ") _) (IntConst a, IntConst b) =
     a >= b
-  domOrderFp _ (Sum _ (SumId "LEQ") _) (Sum _ (SumId "Add") (IntConst n)) = 
+  domOrderFp _ (Sum _ (SumId "LEQ") _) (Sum _ (SumId "Add") (IntConst n)) =
     n >= 0
-  domOrderFp _ (Sum _ (SumId "GEQ") _) (Sum _ (SumId "Sub") (IntConst n)) = 
+  domOrderFp _ (Sum _ (SumId "GEQ") _) (Sum _ (SumId "Sub") (IntConst n)) =
     n >= 0
 
 addV :: (Domain d) => Val d -> Val d
