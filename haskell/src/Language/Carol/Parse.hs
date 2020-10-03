@@ -41,20 +41,41 @@ vtypeP =
 unitTP = string "{}" >> return UnitT
 intTP = string "Int" >> return IntT
 boolTP = string "Bool" >> return boolT
-pairTP = do
+pairTP = parensP $ do
   at <- vtypeP
-  spaces
-  char '*'
-  spaces
+  spaces >> char ',' >> spaces
   bt <- vtypeP
   return (PairT at bt)
 
 parseComp :: String -> Either ParseError Comp'
-parseComp = parse (spaces >> compP) ""
+parseComp = parse p ""
+  where p = do spaces
+               m <- compP
+               spaces
+               eof
+               return m
 
 compP :: Parsec String s Comp'
-compP = choice $ map try [retP,funP,apP,testP,modP,parensP compP]
+compP = do 
+  m1 <- choice $ map try 
+          [retP
+          ,funP
+          ,apP
+          ,testP
+          ,modP
+          ,parensP compP]
+  mxm2 <- optionMaybe (try extBindP)
+  case mxm2 of
+    Just abs -> return $ Bind m1 abs
+    Nothing -> return m1
 
+extBindP :: Parsec String s (VarId,Comp')
+extBindP = do
+  spaces >> string "to" >> spaces
+  x <- varIdentP
+  spaces >> char '|' >> spaces
+  m2 <- compP
+  return $ (x,m2)
 
 testP :: Parsec String s Comp'
 testP = do
@@ -118,12 +139,13 @@ valP = do
          ,leqP
          ,geqP
          ,parensP valP]
+  spaces
   mvt <- optionMaybe (try annoEndP)
   case mvt of
     Just vt -> return $ Anno v vt
     Nothing -> return v
 
-annoEndP = spaces >> char ':' >> spaces >> vtypeP
+annoEndP = char ':' >> spaces >> vtypeP
 
 varP = Var <$> varIdentP
 unitP = string "{=}" >> return Unit

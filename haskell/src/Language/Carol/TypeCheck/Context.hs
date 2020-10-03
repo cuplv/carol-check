@@ -1,6 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Language.Carol.TypeContext 
+module Language.Carol.TypeCheck.Context
   ( Context
   , emptyContext
   , isBound
@@ -75,15 +75,18 @@ newEx g = let ExTypeId i = highEx g
           in (ExInit a g, a)
 
 bindEx :: ExTypeId -> ValT -> Context -> TErr Context
-bindEx a t = \case
-  Empty -> Left $ show a ++ " does not exist in the context."
+bindEx a t g = bindExR g a t g
+
+bindExR :: Context -> ExTypeId -> ValT -> Context -> TErr Context
+bindExR g0 a t = \case
+  Empty -> Left $ show a ++ " does not exist in context " ++ show g0
   ExInit b g | a == b -> return $ ExBind a t g
-  ExInit b g | a /= b -> ExInit b <$> bindEx a t g
+  ExInit b g | a /= b -> ExInit b <$> bindExR g0 a t g
   ExBind b t1 g | a == b && t == t1 -> return g
   ExBind b t1 g | a == b && t /= t1 -> Left $ 
     show a ++ " is already solved to non-match, " ++ show t1 ++ " != " ++ show t
-  ExBind b t1 g | a /= b -> ExBind b t <$> bindEx a t g
-  VarBind x t1 g -> VarBind x t1 <$> bindEx a t g
+  ExBind b t1 g | a /= b -> ExBind b t <$> bindExR g0 a t g
+  VarBind x t1 g -> VarBind x t1 <$> bindExR g0 a t g
 
 varBind :: VarId -> ValT -> Context -> Context
 varBind = VarBind

@@ -34,6 +34,40 @@ unitTests = testGroup "Unit tests"
      \  mod a <- x as y|  \
      \  return y          "
      (RetT IntT)
+  ,typeCase
+    "Bind3"
+    "return {=} to x| 5` |y| return (x,y)"
+    (RetT (PairT UnitT IntT))
+  ,typeCase
+    "Bind4"
+    "return {=} to x| 5` |y| return (y,x)"
+    (RetT (PairT IntT UnitT))
+  ,typeCase
+    "ApFunApFun"
+    "{=}` |x| 5` |y| return (x,y)"
+    (RetT (PairT UnitT IntT))
+  ,testGroup "ApApFunFun"
+     [typeCase
+       "Fun2"
+       "{=}` 5` |x| |y| return (x,y)"
+       (RetT (PairT UnitT IntT))
+     ,typeCase
+       "Fun3"
+       "3` {=}` 1` |x1||xU||x3| return (x1,xU)"
+       (RetT (PairT IntT UnitT))
+     ,typeCase -- Contrary to previous assumption, this case (and all
+               -- the ApApFunFun style cases) does not work due to
+               -- some logic missing from the typechecking process.
+               -- These cases in fact do not depend on polymorphism in
+               -- the type system.
+       "Bind1"
+       "5` return {=} to x| |y| return (x,y)"
+       (RetT (PairT UnitT IntT))
+     ,typeCase
+       "Bind2"
+       "5` return {=} to x| |y| return (y,x)"
+       (RetT (PairT IntT UnitT))
+     ]
   ]
 
 typeCase :: String -> String -> CompT -> TestTree
