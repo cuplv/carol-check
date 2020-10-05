@@ -13,6 +13,7 @@ library
   exposed-modules:     Language.Carol.AST
                      , Language.Carol.AST.Terms
                      , Language.Carol.AST.Types
+                     , Language.Carol.AST.Types.Existential
                      , Language.Carol.CARD
                      , Language.Carol.Parse
                      , Language.Carol.TypeCheck

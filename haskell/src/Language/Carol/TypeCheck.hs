@@ -26,8 +26,8 @@ checkV v vt1 g = do
 -- | The Sub rule for values, basically
 matchV :: ValT -> ValT -> Context -> TErr Context
 matchV vt1 vt2 g = case (vt1,vt2) of
-  (ExVar a, vt2) -> Ctx.bindEx a vt2 g
-  (vt1, ExVar a) -> Ctx.bindEx a vt1 g
+  (ExVar a, vt2) -> Ctx.bindExV a vt2 g
+  (vt1, ExVar a) -> Ctx.bindExV a vt1 g
   _ | vt1 == vt2 -> return g
   _ -> Left $ show vt1 ++ " does not match " ++ show vt2
 
@@ -71,7 +71,7 @@ synthC m g = case m of
     return (RetT vt, g1)
   Prod parts -> undefined
   Fun (x,m') -> do
-    let (g1,a) = Ctx.newEx g
+    let (g1,a) = Ctx.newExV g
     (mt,g2) <- synthC m' (Ctx.varBind x (ExVar a) g1)
     mt' <- Ctx.substC g2 mt
     (g3,_) <- Ctx.trimToVar x g2
