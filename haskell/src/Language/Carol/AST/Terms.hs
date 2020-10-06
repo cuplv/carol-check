@@ -82,7 +82,10 @@ leqV = Sum intDOrdSum (SumId "LEQ") Unit
 geqV :: (Domain d) => Val d
 geqV = Sum intDOrdSum (SumId "GEQ") Unit
 
-newtype VarId = VarId String deriving (Show,Eq,Ord)
+newtype VarId = VarId String deriving (Eq,Ord)
+
+instance Show VarId where
+  show (VarId s) = s
 
 data (Domain d) => Val d =
     Var VarId
@@ -92,7 +95,17 @@ data (Domain d) => Val d =
   | IntConst Int
   | Pair (Val d) (Val d)
   | Anno (Val d) ValT
-  deriving (Show,Eq,Ord)
+  deriving (Eq,Ord)
+
+instance (Domain d) => Show (Val d) where
+  show = \case
+    Var i -> show i
+    Thunk m -> "thunk " ++ show m
+    Sum mp (SumId s) v -> s ++ "(" ++ show v ++ ")"
+    Unit -> "{=}"
+    IntConst i -> show i
+    Pair v1 v2 -> "(" ++ show v1 ++ ", " ++ show v2 ++ ")"
+    Anno v vt -> show v ++ " : " ++ show vt
 
 boolV :: (Domain d) => Bool -> Val d
 boolV b = Sum boolSchema i Unit

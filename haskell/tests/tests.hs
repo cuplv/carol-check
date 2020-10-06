@@ -50,16 +50,24 @@ unitTests = testGroup "Unit tests"
      [typeCase
        "Fun2"
        "{=}` 5` |x| |y| return (x,y)"
-       (RetT (PairT UnitT IntT))
+       (RetT (PairT IntT UnitT))
      ,typeCase
        "Fun3"
-       "3` {=}` 1` |x1||xU||x3| return (x1,xU)"
+       "3` 1` {=}` |xU||x2||x3| return (x3,xU)"
        (RetT (PairT IntT UnitT))
-     ,typeCase -- Contrary to previous assumption, this case (and all
-               -- the ApApFunFun style cases) does not work due to
-               -- some logic missing from the typechecking process.
-               -- These cases in fact do not depend on polymorphism in
-               -- the type system.
+     ,typeCase
+       "Fun4"
+       "3` 1` {=}` {=}` |xU0||xU||x2||x3| return (x3,xU)"
+       (RetT (PairT IntT UnitT))
+     ,typeCase
+       "Fun5"
+       "3` 1` {=}` {=}` 2` |x1||xU0||xU||x2||x3| return (x3,xU)"
+       (RetT (PairT IntT UnitT))
+     ,typeCase
+       "Fun6"
+       "3` 1` {=}` {=}` 2` 8` |y||z||xU0||xU||x2||x3| return (x3,xU)"
+       (RetT (PairT IntT UnitT))
+     ,typeCase
        "Bind1"
        "5` return {=} to x| |y| return (x,y)"
        (RetT (PairT UnitT IntT))

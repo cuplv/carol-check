@@ -7,10 +7,12 @@ module Language.Carol.TypeCheck.Context
   , newExV
   , newExC
   , bindExV
+  , bindExC
   , varBind
   , trimToVar
   , substV
   , substC
+  , inb42
   , TErr
   ) where
 
@@ -65,6 +67,8 @@ isBound x = \case
 
 data ExStatus = ExNonExist | ExUnBound | ExBound ValT
 
+data ExStatusC = ExNonExistC | ExUnBoundC | ExBoundC CompT
+
 existStatusV :: ExTypeId -> Context -> ExStatus
 existStatusV a = \case
   Empty -> ExNonExist
@@ -73,6 +77,17 @@ existStatusV a = \case
   ExValT _ g' -> existStatusV a g'
   ExCompT _ g' -> existStatusV a g'
   VarBind _ _ g' -> existStatusV a g'
+
+existStatusC :: ExTypeId -> Context -> ExStatusC
+existStatusC b = \case
+  Empty -> ExNonExistC
+  -- ExValT (ExV a1   Nothing) _ | a == a1 -> ExUnBound
+  -- ExValT (ExV a1 (Just vt)) _ | a == a1 -> ExBound vt
+  ExValT _ g' -> existStatusC b g'
+  ExCompT (ExC b1   Nothing) _ | b == b1 -> ExUnBoundC
+  ExCompT (ExC b1 (Just mt)) _ | b == b1 -> ExBoundC mt
+  ExCompT _ g' -> existStatusC b g'
+  VarBind _ _ g' -> existStatusC b g'
 
 collectExs :: Context -> [ExTypeId]
 collectExs = \case
@@ -95,11 +110,13 @@ newExC g = let e = nextEx g
            in (ExCompT (ExC e Nothing) g, e)
 
 bindExV :: ExTypeId -> ValT -> Context -> TErr Context
-bindExV a t g = bindExVR g a t g
+bindExV a vt g = bindExVR g a vt g
 
 bindExVR :: Context -> ExTypeId -> ValT -> Context -> TErr Context
 bindExVR g0 a vt = \case
-  Empty -> Left $ "<" ++ show a ++ ">" ++ " does not exist in context " ++ show g0
+  Empty -> Left $ "Cannot bind " ++ show vt ++ " because " 
+                  ++ "<" ++ show a ++ ">" 
+                  ++ " does not exist in context " ++ show g0
   ExValT (ExV a1    Nothing) g' | a == a1 -> 
     return $ ExValT (ExV a1 (Just vt)) g'
   ExValT (ExV a1 (Just vt1)) g' | a == a1 && vt == vt1 -> 
@@ -111,7 +128,25 @@ bindExVR g0 a vt = \case
   ExValT     e g' -> ExValT     e <$> bindExVR g0 a vt g'
   ExCompT    e g' -> ExCompT    e <$> bindExVR g0 a vt g'
   VarBind x t1 g' -> VarBind x t1 <$> bindExVR g0 a vt g'
-  
+
+bindExC :: ExTypeId -> CompT -> Context -> TErr Context
+bindExC b mt g = bindExCR g b mt g
+
+bindExCR :: Context -> ExTypeId -> CompT -> Context -> TErr Context
+bindExCR g0 b mt = \case
+  Empty -> Left $ "<|" ++ show b ++ "|>" 
+                  ++ " does not exist in context " ++ show g0
+  ExCompT (ExC b1    Nothing) g' | b == b1 -> 
+    return $ ExCompT (ExC b1 (Just mt)) g'
+  ExCompT (ExC b1 (Just mt1)) g' | b == b1 && mt == mt1 -> 
+    return $ ExCompT (ExC b1 (Just mt1)) g'
+  ExCompT (ExC b1 (Just mt1)) g' | b == b1 && mt /= mt1 ->
+    Left $ show b ++ " is already solved to non-match: " 
+           ++ show mt1 ++ " != " ++ show mt
+
+  ExValT     e g' -> ExValT     e <$> bindExCR g0 b mt g'
+  ExCompT    e g' -> ExCompT    e <$> bindExCR g0 b mt g'
+  VarBind x t1 g' -> VarBind x t1 <$> bindExCR g0 b mt g'
 
 varBind :: VarId -> ValT -> Context -> Context
 varBind = VarBind
@@ -149,3 +184,29 @@ substC g = \case
     pl' <- mapM (\(i,mt) -> (,) <$> return i <*> substC g mt) pl
     return $ ProdT (M.fromList pl')
   FunT vt mt -> FunT <$> substV g vt <*> substC g mt
+  ExVarC b -> case existStatusC b g of
+    ExBoundC mt -> substC g mt
+    ExUnBoundC -> return $ ExVarC b
+    ExNonExistC -> Left $ "<|" ++ show b ++ "|>" 
+                          ++ " doesn't exist? " ++ show g
+
+onSnd :: (a -> b) -> (c1,c1,a) -> (c1,c1,b)
+onSnd f (c1,c2,a) = (c1,c2,f a)
+
+inb42 :: ExTypeId -> Context -> TErr (ExTypeId,ExTypeId,Context)
+inb42 b = \case
+  Empty -> Left $ show b ++ " was not in context."
+  ExValT e g' -> onSnd (ExValT e) <$> inb42 b g'
+  ExCompT (ExC b1 Nothing) g' | b == b1 ->
+    let aNew = exTypeIdSub b1
+        bNew = exTypeIdNext aNew
+        gNew = ExCompT
+                 (ExC b1 (Just $ FunT (ExVar aNew) (ExVarC bNew)))
+                 (ExCompT
+                    (ExC bNew Nothing)
+                    (ExValT
+                       (ExV aNew Nothing)
+                       g'))
+    in return (aNew, bNew, gNew)
+  ExCompT e g' -> onSnd (ExCompT e) <$> inb42 b g'
+  VarBind x vt g' -> onSnd (VarBind x vt) <$> inb42 b g'

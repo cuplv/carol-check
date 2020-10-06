@@ -55,6 +55,7 @@ data CompT =
     RetT ValT
   | ProdT (Map ProdId CompT)
   | FunT ValT CompT
+  | ExVarC ExTypeId
   deriving (Eq,Ord)
 
 instance Show CompT where
@@ -62,3 +63,4 @@ instance Show CompT where
     RetT vt -> "F(" ++ show vt ++ ")"
     ProdT mp -> "Π(" ++ show mp ++ ")"
     FunT vt mt' -> show vt ++ " → " ++ show mt'
+    ExVarC e -> "<|" ++ show e ++ "|>"
