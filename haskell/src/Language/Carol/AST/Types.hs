@@ -9,13 +9,11 @@ module Language.Carol.AST.Types
   , CompT (..)
   , SumId (..)
   , ProdId (..)
-  , ExTypeId
-  , exTypeIdInit
-  , exTypeIdSub
-  , exTypeIdNext
+  , ExIdV
+  , ExIdC
   ) where
 
-import Language.Carol.AST.Types.Existential
+import Language.Carol.AST.Types.ExVars (ExIdV,ExIdC)
 
 import Data.Map (Map)
 import qualified Data.Map as M
@@ -30,7 +28,7 @@ data ValT =
   | UnitT
   | IntT
   | PairT ValT ValT
-  | ExVar ExTypeId
+  | ExVT ExIdV
   deriving (Eq,Ord)
   
 instance Show ValT where
@@ -41,7 +39,7 @@ instance Show ValT where
     UnitT -> "{}"
     IntT -> "Int"
     PairT vt1 vt2 -> "(" ++ show vt1 ++ ", " ++ show vt2 ++ ")"
-    ExVar e -> "<" ++ show e ++ ">"
+    ExVT e -> show e
 
 trueS = SumId "True"
 falseS = SumId "False"
@@ -55,7 +53,7 @@ data CompT =
     RetT ValT
   | ProdT (Map ProdId CompT)
   | FunT ValT CompT
-  | ExVarC ExTypeId
+  | ExCT ExIdC
   deriving (Eq,Ord)
 
 instance Show CompT where
@@ -63,4 +61,4 @@ instance Show CompT where
     RetT vt -> "F(" ++ show vt ++ ")"
     ProdT mp -> "Π(" ++ show mp ++ ")"
     FunT vt mt' -> show vt ++ " → " ++ show mt'
-    ExVarC e -> "<|" ++ show e ++ "|>"
+    ExCT e -> show e

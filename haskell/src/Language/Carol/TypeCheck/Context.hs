@@ -17,6 +17,7 @@ module Language.Carol.TypeCheck.Context
   ) where
 
 import Language.Carol.AST
+import Language.Carol.AST.Types.ExVars
 
 import Data.Map (Map)
 import qualified Data.Map as M
@@ -24,18 +25,18 @@ import qualified Data.Map as M
 type TErr = Either String
 
 -- | Existential variable declaration/binding for value types.
-data ExV = ExV ExTypeId (Maybe ValT) deriving (Eq,Ord)
+data ExV = ExV ExIdV (Maybe ValT) deriving (Eq,Ord)
 
 instance Show ExV where
-  show (ExV e Nothing) = "<" ++ show e ++ ">"
-  show (ExV e (Just vt)) = "<" ++ show e ++ ">=" ++ show vt
+  show (ExV e Nothing) = show e
+  show (ExV e (Just vt)) = show e ++ "=" ++ show vt
 
 -- | Existential variable declaration/binding for computation types.
-data ExC = ExC ExTypeId (Maybe CompT) deriving (Eq,Ord)
+data ExC = ExC ExIdC (Maybe CompT) deriving (Eq,Ord)
 
 instance Show ExC where
-  show (ExC e Nothing) = "<|" ++ show e ++ "|>"
-  show (ExC e (Just mt)) = "<|" ++ show e ++ "|>=" ++ show mt
+  show (ExC e Nothing) = show e
+  show (ExC e (Just mt)) = show e ++ "=" ++ show mt
 
 data Context =
     Empty
@@ -69,7 +70,7 @@ data ExStatus = ExNonExist | ExUnBound | ExBound ValT
 
 data ExStatusC = ExNonExistC | ExUnBoundC | ExBoundC CompT
 
-existStatusV :: ExTypeId -> Context -> ExStatus
+existStatusV :: ExIdV -> Context -> ExStatus
 existStatusV a = \case
   Empty -> ExNonExist
   ExValT (ExV a1   Nothing) _ | a == a1 -> ExUnBound
@@ -78,7 +79,7 @@ existStatusV a = \case
   ExCompT _ g' -> existStatusV a g'
   VarBind _ _ g' -> existStatusV a g'
 
-existStatusC :: ExTypeId -> Context -> ExStatusC
+existStatusC :: ExIdC -> Context -> ExStatusC
 existStatusC b = \case
   Empty -> ExNonExistC
   -- ExValT (ExV a1   Nothing) _ | a == a1 -> ExUnBound
@@ -92,8 +93,8 @@ existStatusC b = \case
 collectExs :: Context -> [ExTypeId]
 collectExs = \case
   Empty -> []
-  ExValT (ExV e _) g' -> e : collectExs g'
-  ExCompT (ExC e _) g' -> e : collectExs g'
+  ExValT (ExV (ExIdV e) _) g' -> e : collectExs g'
+  ExCompT (ExC (ExIdC e) _) g' -> e : collectExs g'
   VarBind _ _ g' -> collectExs g'
 
 nextEx :: Context -> ExTypeId
@@ -101,18 +102,18 @@ nextEx g = case collectExs g of
   [] -> exTypeIdInit
   es -> exTypeIdNext (maximum es)
 
-newExV :: Context -> (Context, ExTypeId)
-newExV g = let e = nextEx g
-           in (ExValT (ExV e Nothing) g, e)
+newExV :: Context -> (Context, ExIdV)
+newExV g = let a = ExIdV (nextEx g)
+           in (ExValT (ExV a Nothing) g, a)
 
-newExC :: Context -> (Context, ExTypeId)
-newExC g = let e = nextEx g
-           in (ExCompT (ExC e Nothing) g, e)
+newExC :: Context -> (Context, ExIdC)
+newExC g = let b = ExIdC (nextEx g)
+           in (ExCompT (ExC b Nothing) g, b)
 
-bindExV :: ExTypeId -> ValT -> Context -> TErr Context
+bindExV :: ExIdV -> ValT -> Context -> TErr Context
 bindExV a vt g = bindExVR g a vt g
 
-bindExVR :: Context -> ExTypeId -> ValT -> Context -> TErr Context
+bindExVR :: Context -> ExIdV -> ValT -> Context -> TErr Context
 bindExVR g0 a vt = \case
   Empty -> Left $ "Cannot bind " ++ show vt ++ " because " 
                   ++ "<" ++ show a ++ ">" 
@@ -129,10 +130,10 @@ bindExVR g0 a vt = \case
   ExCompT    e g' -> ExCompT    e <$> bindExVR g0 a vt g'
   VarBind x t1 g' -> VarBind x t1 <$> bindExVR g0 a vt g'
 
-bindExC :: ExTypeId -> CompT -> Context -> TErr Context
+bindExC :: ExIdC -> CompT -> Context -> TErr Context
 bindExC b mt g = bindExCR g b mt g
 
-bindExCR :: Context -> ExTypeId -> CompT -> Context -> TErr Context
+bindExCR :: Context -> ExIdC -> CompT -> Context -> TErr Context
 bindExCR g0 b mt = \case
   Empty -> Left $ "<|" ++ show b ++ "|>" 
                   ++ " does not exist in context " ++ show g0
@@ -151,13 +152,13 @@ bindExCR g0 b mt = \case
 varBind :: VarId -> ValT -> Context -> Context
 varBind = VarBind
 
-trimToVar :: VarId -> Context -> TErr (Context, ValT)
+trimToVar :: VarId -> Context -> TErr Context
 trimToVar x = \case
   Empty -> Left $ "Trim to var " ++ show x ++ " failed."
   ExValT _ g' -> trimToVar x g'
   ExCompT _ g' -> trimToVar x g'
   VarBind y t g' -> if x == y
-                       then Right (g',t)
+                       then return g'
                        else trimToVar x g'
 
 substV :: Context -> ValT -> TErr ValT
@@ -170,9 +171,9 @@ substV g = \case
   UnitT -> return UnitT
   IntT -> return IntT
   PairT vt1 vt2 -> PairT <$> substV g vt1 <*> substV g vt2
-  ExVar a -> case existStatusV a g of
+  ExVT a -> case existStatusV a g of
     ExBound t -> substV g t
-    ExUnBound -> return $ ExVar a
+    ExUnBound -> return $ ExVT a
     ExNonExist -> Left $ "<" ++ show a ++ ">" 
                          ++ " doesn't exist? " ++ show g
 
@@ -184,24 +185,25 @@ substC g = \case
     pl' <- mapM (\(i,mt) -> (,) <$> return i <*> substC g mt) pl
     return $ ProdT (M.fromList pl')
   FunT vt mt -> FunT <$> substV g vt <*> substC g mt
-  ExVarC b -> case existStatusC b g of
+  ExCT b -> case existStatusC b g of
     ExBoundC mt -> substC g mt
-    ExUnBoundC -> return $ ExVarC b
+    ExUnBoundC -> return $ ExCT b
     ExNonExistC -> Left $ "<|" ++ show b ++ "|>" 
                           ++ " doesn't exist? " ++ show g
 
-onSnd :: (a -> b) -> (c1,c1,a) -> (c1,c1,b)
+onSnd :: (a -> b) -> (c1,c2,a) -> (c1,c2,b)
 onSnd f (c1,c2,a) = (c1,c2,f a)
 
-inb42 :: ExTypeId -> Context -> TErr (ExTypeId,ExTypeId,Context)
+inb42 :: ExIdC -> Context -> TErr (ExIdV,ExIdC,Context)
 inb42 b = \case
   Empty -> Left $ show b ++ " was not in context."
   ExValT e g' -> onSnd (ExValT e) <$> inb42 b g'
-  ExCompT (ExC b1 Nothing) g' | b == b1 ->
-    let aNew = exTypeIdSub b1
-        bNew = exTypeIdNext aNew
+  ExCompT (ExC (ExIdC b1) Nothing) g' | b == ExIdC b1 ->
+    let eTmp = exTypeIdSub b1
+        aNew = ExIdV (eTmp)
+        bNew = ExIdC (exTypeIdNext eTmp)
         gNew = ExCompT
-                 (ExC b1 (Just $ FunT (ExVar aNew) (ExVarC bNew)))
+                 (ExC (ExIdC b1) (Just $ FunT (ExVT aNew) (ExCT bNew)))
                  (ExCompT
                     (ExC bNew Nothing)
                     (ExValT

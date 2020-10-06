@@ -1,8 +1,10 @@
-module Language.Carol.AST.Types.Existential
+module Language.Carol.AST.Types.ExVars
   ( ExTypeId
   , exTypeIdInit
   , exTypeIdSub
   , exTypeIdNext
+  , ExIdV (..)
+  , ExIdC (..)
   ) where
 
 data ExTypeId =
@@ -39,3 +41,13 @@ exTypeIdNext (ExTypeId n Nothing) =
   ExTypeId (n + 1) Nothing
 exTypeIdNext (ExTypeId n (Just e)) =
   ExTypeId n (Just $ exTypeIdNext e)
+
+newtype ExIdV = ExIdV ExTypeId deriving (Eq,Ord)
+
+instance Show ExIdV where
+  show (ExIdV e) = "<" ++ show e ++ ">"
+
+newtype ExIdC = ExIdC ExTypeId deriving (Eq,Ord)
+
+instance Show ExIdC where
+  show (ExIdC e) = "<|" ++ show e ++ "|>"

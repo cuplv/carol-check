@@ -11,14 +11,14 @@ extra-source-files:  CHANGELOG.md, README.md
 
 library
   exposed-modules:     Language.Carol.AST
-                     , Language.Carol.AST.Terms
-                     , Language.Carol.AST.Types
-                     , Language.Carol.AST.Types.Existential
-                     , Language.Carol.CARD
                      , Language.Carol.Parse
                      , Language.Carol.TypeCheck
+  other-modules:       Language.Carol.AST.Terms
+                     , Language.Carol.AST.Types
+                     , Language.Carol.AST.Types.ExVars
                      , Language.Carol.TypeCheck.Context
-  -- other-modules:
+                     , Language.Carol.TypeCheck.Inst
+                     , Language.Carol.TypeCheck.SubCheck
   -- other-extensions:
   build-depends:       base >=4.13 && <4.14
                      , containers
