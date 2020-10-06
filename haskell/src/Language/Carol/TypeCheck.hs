@@ -79,7 +79,7 @@ synthC m g = case m of
     (mt,g1) <- synthC m g
     mt' <- substC g1 mt
     appSynth mt' v g1
-  DMod d op arg (x,m') -> 
+  DMod d op arg (x,m') ->
     synthC m'
     =<< return . varBind x (dst d)
     =<< checkV arg (dst d)
@@ -90,6 +90,13 @@ synthC m g = case m of
     =<< checkV arg2 (dst d)
     =<< checkV arg1 (dst d)
     =<< checkV op (dot d) g
+  DIssue d op m' -> synthC m' =<< checkV op (dmt d) g
+  DQuery d op (x,m') ->
+    synthC m'
+    =<< return . varBind x (dst d)
+    =<< checkV op (dot d) g
+  DProduce d op m' -> synthC m' =<< checkV op (dmt d) g
+  DConsume d op m' -> synthC m' =<< checkV op (dmt d) g
 
 appSynth :: (Domain d) => CompT -> Val d -> Context -> TErr (CompT,Context)
 appSynth mt v g = case mt of

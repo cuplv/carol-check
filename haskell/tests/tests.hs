@@ -76,6 +76,23 @@ unitTests = testGroup "Unit tests"
        "5` return {=} to x| |y| return (y,x)"
        (RetT (PairT IntT UnitT))
      ]
+  ,testGroup "Specials"
+     [typeCase
+        "Query"
+        "query LEQ as x| 5` |y| return (y,x)"
+        (RetT (PairT IntT IntT))]
+     ,typeCase
+        "Issue"
+        "issue +2 | return {=}"
+        (RetT UnitT)
+     ,typeCase
+        "Produce"
+        "produce +2 | return {=}"
+        (RetT UnitT)
+     ,typeCase
+        "Consume"
+        "consume +2 | return {=}"
+        (RetT UnitT)
   ]
 
 typeCase :: String -> String -> CompT -> TestTree

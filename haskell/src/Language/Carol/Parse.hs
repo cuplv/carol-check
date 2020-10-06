@@ -63,6 +63,10 @@ compP = do
           ,apP
           ,testP
           ,modP
+          ,queryP
+          ,issueP
+          ,produceP
+          ,consumeP
           ,parensP compP]
   mxm2 <- optionMaybe (try extBindP)
   case mxm2 of
@@ -99,6 +103,41 @@ modP = do
   spaces >> char '|' >> spaces
   m' <- compP
   return $ DMod domain' op arg (x,m')
+
+queryP :: Parsec String s Comp'
+queryP = do
+  string "query" >> spaces
+  op <- valP
+  spaces >> string "as" >> spaces
+  x <- varIdentP
+  spaces >> char '|' >> spaces
+  m' <- compP
+  return $ DQuery domain' op (x,m')
+
+issueP :: Parsec String s Comp'
+issueP = do
+  string "issue" >> spaces
+  op <- valP
+  spaces >> char '|' >> spaces
+  m' <- compP
+  return $ DIssue domain' op m'
+
+produceP :: Parsec String s Comp'
+produceP = do
+  string "produce" >> spaces
+  op <- valP
+  spaces >> char '|' >> spaces
+  m' <- compP
+  return $ DProduce domain' op m'
+
+consumeP :: Parsec String s Comp'
+consumeP = do
+  string "consume" >> spaces
+  op <- valP
+  spaces >> char '|' >> spaces
+  m' <- compP
+  return $ DConsume domain' op m'
+
 parensP :: Parsec String s a -> Parsec String s a
 parensP = between (char '(' >> spaces) (spaces >> char ')')
 
@@ -108,7 +147,7 @@ retP = do
   return (Ret v)
 
 varIdentP :: Parsec String s VarId
-varIdentP = VarId <$> ((:) <$> letter <*> many alphaNum)
+varIdentP = VarId <$> ((:) <$> lower <*> many alphaNum)
 
 funVar :: Parsec String s VarId
 funVar = between (char '|' >> spaces) (spaces >> char '|') varIdentP

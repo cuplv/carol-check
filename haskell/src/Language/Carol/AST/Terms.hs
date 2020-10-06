@@ -128,6 +128,10 @@ data (Domain d) => Comp d =
   | Ap (Val d) (Comp d)
   | DMod d (Val d) (Val d) (Abst d)
   | DTest d (Val d) (Val d, Val d) (Abst d)
+  | DIssue d (Val d) (Comp d)
+  | DQuery d (Val d) (Abst d)
+  | DProduce d (Val d) (Comp d)
+  | DConsume d (Val d) (Comp d)
   deriving (Show,Eq,Ord)
 
 type Comp' = Comp IntD
