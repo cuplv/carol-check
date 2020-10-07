@@ -15,6 +15,7 @@ library
                      , Language.Carol.TypeCheck
   other-modules:       Language.Carol.AST.Terms
                      , Language.Carol.AST.Types
+                     , Language.Carol.AST.Domain
                      , Language.Carol.AST.Types.ExVars
                      , Language.Carol.TypeCheck.Context
                      , Language.Carol.TypeCheck.Inst
