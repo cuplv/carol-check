@@ -80,7 +80,7 @@ unitTests = testGroup "Unit tests"
      [typeCase
         "Query"
         "query LEQ as x| 5` |y| return (y,x)"
-        (RetT (PairT IntT IntT))]
+        (RetT (PairT IntT IntT))
      ,typeCase
         "Issue"
         "issue +2 | return {=}"
@@ -93,6 +93,19 @@ unitTests = testGroup "Unit tests"
         "Consume"
         "consume +2 | return {=}"
         (RetT UnitT)
+     ,typeCase
+        "ModIn1"
+        "mod +1 <- 5 as x| True` |x| return x"
+        (RetT boolT)
+     ,typeCase
+        "ModIn2"
+        "True` mod +1 <- 5 as x| |x| return x"
+        (RetT boolT)
+     ,typeCase
+        "ModOut"
+        "True` |x| (mod +1 <- 5 as x| return {=}) to y| return x"
+        (RetT boolT)
+     ]
   ]
 
 typeCase :: String -> String -> CompT -> TestTree
