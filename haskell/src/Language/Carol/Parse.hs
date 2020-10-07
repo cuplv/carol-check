@@ -91,7 +91,7 @@ testP = do
   x <- varIdentP
   spaces >> char '|' >> spaces
   m' <- compP
-  return $ DTest domain' op (arg1,arg2) (x,m')
+  return $ DSC IntTest [op,arg1,arg2] (Just x,m')
 
 modP :: Parsec String s Comp'
 modP = do
@@ -102,7 +102,7 @@ modP = do
   x <- varIdentP
   spaces >> char '|' >> spaces
   m' <- compP
-  return $ DMod domain' op arg (x,m')
+  return $ DSC IntMod [op,arg] (Just x,m')
 
 queryP :: Parsec String s Comp'
 queryP = do
@@ -112,7 +112,7 @@ queryP = do
   x <- varIdentP
   spaces >> char '|' >> spaces
   m' <- compP
-  return $ DQuery domain' op (x,m')
+  return $ DSC IntQuery [op] (Just x,m')
 
 issueP :: Parsec String s Comp'
 issueP = do
@@ -120,7 +120,7 @@ issueP = do
   op <- valP
   spaces >> char '|' >> spaces
   m' <- compP
-  return $ DIssue domain' op m'
+  return $ DSC IntIssue [op] (Nothing,m')
 
 produceP :: Parsec String s Comp'
 produceP = do
@@ -128,7 +128,7 @@ produceP = do
   op <- valP
   spaces >> char '|' >> spaces
   m' <- compP
-  return $ DProduce domain' op m'
+  return $ DSC IntProduce [op] (Nothing,m')
 
 consumeP :: Parsec String s Comp'
 consumeP = do
@@ -136,7 +136,7 @@ consumeP = do
   op <- valP
   spaces >> char '|' >> spaces
   m' <- compP
-  return $ DConsume domain' op m'
+  return $ DSC IntConsume [op] (Nothing,m')
 
 parensP :: Parsec String s a -> Parsec String s a
 parensP = between (char '(' >> spaces) (spaces >> char ')')

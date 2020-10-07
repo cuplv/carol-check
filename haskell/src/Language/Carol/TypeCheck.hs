@@ -79,34 +79,15 @@ synthC m g = case m of
     (mt,g1) <- synthC m g
     mt' <- substC g1 mt
     appSynth mt' v g1
-  DMod d op arg (x,m') ->
-    synthC m'
-    =<< return . varBind x (dst d)
-    =<< checkV arg (dst d)
-    =<< checkV op (dmt d) g
-  DTest d op (arg1,arg2) (x,m') ->
-    synthC m'
-    =<< return . varBind x boolT
-    =<< checkV arg2 (dst d)
-    =<< checkV arg1 (dst d)
-    =<< checkV op (dot d) g
-  DIssue d op m' -> synthC m' =<< checkV op (dmt d) g
-  DQuery d op (x,m') ->
-    synthC m'
-    =<< return . varBind x (dst d)
-    =<< checkV op (dot d) g
-  DProduce d op m' -> synthC m' =<< checkV op (dmt d) g
-  DConsume d op m' -> synthC m' =<< checkV op (dmt d) g
+  DSC d vs (mx,m') -> do
+    let (vts,outVT) = domSig d
+    g1 <- foldM (\g (v,vt) -> checkV v vt g) g (zip vs vts)
+    case mx of
+      Just x -> synthC m' (varBind x outVT g1)
+      Nothing -> synthC m' g1
 
 appSynth :: (Domain d) => CompT -> Val d -> Context -> TErr (CompT,Context)
 appSynth mt v g = case mt of
   FunT vt mt' -> do 
     g1 <- checkV v vt g
     return (mt',g1)
-
-dst :: (Domain d) => d -> ValT
-dst = domStateType
-dmt :: (Domain d) => d -> ValT
-dmt = domModType
-dot :: (Domain d) => d -> ValT
-dot = domOrderType

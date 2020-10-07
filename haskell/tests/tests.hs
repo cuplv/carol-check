@@ -22,7 +22,7 @@ unitTests = testGroup "Unit tests"
   ,typeCase
      "Mod"
      "return +1"
-     (RetT $ domModType IntD)
+     (RetT intModT)
   ,typeCase
      "Function"
      "|asdf1234| return asdf1234 : {}"

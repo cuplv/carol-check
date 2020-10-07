@@ -5,11 +5,12 @@ module Language.Carol.AST.Terms
   , boolV
   , Comp (..)
   , Comp'
-  , domain'
   , VarId (..)
   , Domain (..)
   , EmptyD
   , IntD (..)
+  , intModT
+  , intOrdT
   , addV
   , subV
   , leqV
@@ -22,12 +23,8 @@ import qualified Data.Map as M
 import Language.Carol.AST.Types
 
 class (Show d, Eq d, Ord d) => Domain d where
-  domStateType :: d -> ValT
-  domModType :: d -> ValT
-  domModDef :: d -> Val d -> Val d -> Val d
-  domOrderType :: d -> ValT
-  domOrderDef :: d -> Val d -> (Val d,Val d) -> Bool
-  domOrderFp :: d -> Val d -> Val d -> Bool
+  domSig :: d -> ([ValT], ValT)
+  domShow :: d -> [Val d] -> (Abst d) -> String
 
 data EmptyD
 
@@ -38,39 +35,43 @@ instance Eq EmptyD where
 instance Ord EmptyD where
   a <= b = undefined
 instance Domain EmptyD where
-  domStateType = undefined
-  domModType = undefined
-  domModDef = undefined
-  domOrderType = undefined
-  domOrderDef = undefined
-  domOrderFp = undefined
+  domSig = undefined
+  domShow = undefined
 
-data IntD = IntD deriving (Show,Eq,Ord)
+data IntD =
+    IntMod
+  | IntTest
+  | IntQuery
+  | IntIssue
+  | IntProduce
+  | IntConsume
+  deriving (Show,Eq,Ord)
 
 intDEffSum = M.fromList 
   [(SumId "Add", IntT)
   ,(SumId "Sub", IntT)]
 
+intModT = SumT intDEffSum
+
 intDOrdSum = M.fromList
   [(SumId "LEQ", UnitT)
   ,(SumId "GEQ", UnitT)]
 
+intOrdT = SumT intDOrdSum
+
 instance Domain IntD where
-  domStateType _ = IntT
-  domModType _ = SumT intDEffSum
-  domModDef _ (Sum _ (SumId "Add") (IntConst b)) (IntConst a) =
-    IntConst (a + b)
-  domModDef _ (Sum _ (SumId "Sub") (IntConst b)) (IntConst a) =
-    IntConst (a - b)
-  domOrderType _ = SumT intDOrdSum
-  domOrderDef _ (Sum _ (SumId "LEQ") _) (IntConst a, IntConst b) =
-    a <= b
-  domOrderDef _ (Sum _ (SumId "GEQ") _) (IntConst a, IntConst b) =
-    a >= b
-  domOrderFp _ (Sum _ (SumId "LEQ") _) (Sum _ (SumId "Add") (IntConst n)) =
-    n >= 0
-  domOrderFp _ (Sum _ (SumId "GEQ") _) (Sum _ (SumId "Sub") (IntConst n)) =
-    n >= 0
+  domSig IntMod = ([SumT intDEffSum, IntT], IntT)
+  domSig IntTest = ([SumT intDOrdSum, IntT, IntT], boolT)
+  domSig IntQuery = ([SumT intDOrdSum], IntT)
+  domSig IntIssue = ([SumT intDEffSum], UnitT)
+  domSig IntProduce = ([SumT intDEffSum], UnitT)
+  domSig IntConsume = ([SumT intDEffSum], UnitT)
+
+  domShow IntMod vs (x,m') = 
+    "mod " ++ show vs ++ " as " ++ show x ++ "| " ++ show m'
+  domShow IntTest vs (x,m') = 
+    "test " ++ show vs ++ " as " ++ show x ++ "| " ++ show m'
+  domShow _ _ (x,m') = "... " ++ show x ++ "| " ++ show m'
 
 addV :: (Domain d) => Val d -> Val d
 addV = Sum intDEffSum (SumId "Add")
@@ -126,13 +127,7 @@ data (Domain d) => Comp d =
   | Pms (Val d) (Map SumId (Abst d))
   | Proj ProdId (Comp d)
   | Ap (Val d) (Comp d)
-  | DMod d (Val d) (Val d) (Abst d)
-  | DTest d (Val d) (Val d, Val d) (Abst d)
-  | DIssue d (Val d) (Comp d)
-  | DQuery d (Val d) (Abst d)
-  | DProduce d (Val d) (Comp d)
-  | DConsume d (Val d) (Comp d)
+  | DSC d [Val d] (Maybe VarId, Comp d)
   deriving (Show,Eq,Ord)
 
 type Comp' = Comp IntD
-domain' = IntD
