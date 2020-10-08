@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 module Language.Carol.Parse 
   ( parseComp
   , compP
@@ -17,12 +19,14 @@ import Text.Parsec
 keywordP :: String -> Parsec String s ()
 keywordP w = string w >> space >> return ()
 
-mtypeP :: Parsec String s CompT
+mtypeP :: Parsec String s (CompT')
 mtypeP = 
   retTP
   <|> funTP
 
+retTP :: Parsec String s (CompT')
 retTP = RetT <$> (char 'F' >> spaces >> vtypeP)
+
 funTP = do
   vt <- vtypeP
   spaces
@@ -31,7 +35,7 @@ funTP = do
   mt <- mtypeP
   return (FunT vt mt)
 
-vtypeP :: Parsec String s ValT
+vtypeP :: Parsec String s (ValT')
 vtypeP = 
   unitTP
   <|> intTP
@@ -39,7 +43,10 @@ vtypeP =
   <|> pairTP
 
 unitTP = string "{}" >> return UnitT
-intTP = string "Int" >> return IntT
+
+intTP :: Parsec String s (ValT')
+intTP = string "Int" >> return intT
+
 boolTP = string "Bool" >> return boolT
 pairTP = parensP $ do
   at <- vtypeP
@@ -91,7 +98,7 @@ testP = do
   x <- varIdentP
   spaces >> char '|' >> spaces
   m' <- compP
-  return $ DSC IntTest [op,arg1,arg2] (Just x,m')
+  return $ DsC IntTest [op,arg1,arg2] (Just x,m')
 
 modP :: Parsec String s Comp'
 modP = do
@@ -102,7 +109,7 @@ modP = do
   x <- varIdentP
   spaces >> char '|' >> spaces
   m' <- compP
-  return $ DSC IntMod [op,arg] (Just x,m')
+  return $ DsC IntMod [op,arg] (Just x,m')
 
 queryP :: Parsec String s Comp'
 queryP = do
@@ -112,7 +119,7 @@ queryP = do
   x <- varIdentP
   spaces >> char '|' >> spaces
   m' <- compP
-  return $ DSC IntQuery [op] (Just x,m')
+  return $ DsC IntQuery [op] (Just x,m')
 
 issueP :: Parsec String s Comp'
 issueP = do
@@ -120,7 +127,7 @@ issueP = do
   op <- valP
   spaces >> char '|' >> spaces
   m' <- compP
-  return $ DSC IntIssue [op] (Nothing,m')
+  return $ DsC IntIssue [op] (Nothing,m')
 
 produceP :: Parsec String s Comp'
 produceP = do
@@ -128,7 +135,7 @@ produceP = do
   op <- valP
   spaces >> char '|' >> spaces
   m' <- compP
-  return $ DSC IntProduce [op] (Nothing,m')
+  return $ DsC IntProduce [op] (Nothing,m')
 
 consumeP :: Parsec String s Comp'
 consumeP = do
@@ -136,7 +143,7 @@ consumeP = do
   op <- valP
   spaces >> char '|' >> spaces
   m' <- compP
-  return $ DSC IntConsume [op] (Nothing,m')
+  return $ DsC IntConsume [op] (Nothing,m')
 
 parensP :: Parsec String s a -> Parsec String s a
 parensP = between (char '(' >> spaces) (spaces >> char ')')
@@ -164,7 +171,7 @@ apP = do
   m <- compP
   return (Ap v m)
 
-valP :: (Domain d) => Parsec String s (Val d)
+valP :: Parsec String s (Val')
 valP = do
   v <- choice $ map try
          [varP
@@ -189,33 +196,33 @@ annoEndP = char ':' >> spaces >> vtypeP
 varP = Var <$> varIdentP
 unitP = string "{=}" >> return Unit
 
-intP :: (Domain d) => Parsec String s (Val d)
-intP = ((IntConst . read) <$> (char '-' >> many1 digit)) <|> natP
+intP :: Parsec String s (Val')
+intP = ((intV . read) <$> (char '-' >> many1 digit)) <|> natP
 
-natP :: (Domain d) => Parsec String s (Val d)
-natP = (IntConst . read) <$> many1 digit
+natP :: Parsec String s (Val')
+natP = (intV . read) <$> many1 digit
 
-pairP :: (Domain d) => Parsec String s (Val d)
+pairP :: Parsec String s (Val')
 pairP = parensP $ do
   a <- valP
   spaces >> char ',' >> spaces
   b <- valP
   return (Pair a b)
 
-trueP :: (Domain d) => Parsec String s (Val d)
+trueP :: Parsec String s (Val')
 trueP = string "True" >> return (boolV True)
 
-falseP :: (Domain d) => Parsec String s (Val d)
+falseP :: Parsec String s (Val')
 falseP = string "False" >> return (boolV False)
 
-addP :: (Domain d) => Parsec String s (Val d)
+addP :: Parsec String s (Val')
 addP = addV <$> (char '+' >> natP)
 
-subP :: (Domain d) => Parsec String s (Val d)
+subP :: Parsec String s (Val')
 subP = subV <$> (char '-' >> natP)
 
-leqP :: (Domain d) => Parsec String s (Val d)
+leqP :: Parsec String s (Val')
 leqP = string "LEQ" >> return leqV
 
-geqP :: (Domain d) => Parsec String s (Val d)
+geqP :: Parsec String s (Val')
 geqP = string "GEQ" >> return geqV

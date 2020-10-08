@@ -18,12 +18,12 @@ import Language.Carol.TypeCheck.SubCheck
 import Data.Map (Map)
 import qualified Data.Map as M
 
-checkV :: (Domain d) => Val d -> ValT -> Context -> TErr Context
+checkV :: (CompDomain e d) => Val e d -> ValT d -> Context d -> TErr (Context d)
 checkV v vt1 g = do
   (vt2,g1) <- synthV v g
   subCheckV vt1 vt2 g1
 
-synthV :: (Domain d) => Val d -> Context -> TErr (ValT, Context)
+synthV :: (CompDomain e d) => Val e d -> Context d -> TErr (ValT d, Context d)
 synthV v g = case v of
   Var x -> case isBound x g of
              Just t -> Right (t,g)
@@ -33,16 +33,16 @@ synthV v g = case v of
     Just vt -> checkV v' vt g >>= \g' -> return (SumT sc, g')
     Nothing -> Left $ show i ++ " not in " ++ show sc
   Unit -> return (UnitT, g)
-  IntConst _ -> return (IntT, g)
   Pair v1 v2 -> do
     (vt1,g1) <- synthV v1 g
     (vt2,g2) <- synthV v2 g1
     return (PairT vt1 vt2, g2)
+  DsV dv -> return (DsT (dValType dv), g)
   Anno v1 vt -> do
     g1 <- checkV v1 vt g
     return (vt, g1)
 
-checkC :: (Domain d) => Comp d -> CompT -> Context -> TErr Context
+checkC :: (CompDomain e d) => Comp e d -> CompT d -> Context d -> TErr (Context d)
 checkC m mt2 g = do
   (mt1,g1) <- synthC m g
   mt1s <- substC g1 mt1
@@ -50,7 +50,7 @@ checkC m mt2 g = do
   g2 <- subCheckC mt1s mt2s g1
   return g2
 
-synthC :: (Domain d) => Comp d -> Context -> TErr (CompT, Context)
+synthC :: (CompDomain e d) => Comp e d -> Context d -> TErr (CompT d, Context d)
 synthC m g = case m of
   Ret v -> do
     (vt,g1) <- synthV v g
@@ -79,14 +79,18 @@ synthC m g = case m of
     (mt,g1) <- synthC m g
     mt' <- substC g1 mt
     appSynth mt' v g1
-  DSC d vs (mx,m') -> do
-    let (vts,outVT) = domSig d
+  DsC d vs (mx,m') -> do
+    let (vts,outVT) = dCompSig d
     g1 <- foldM (\g (v,vt) -> checkV v vt g) g (zip vs vts)
     case mx of
       Just x -> synthC m' (varBind x outVT g1)
       Nothing -> synthC m' g1
 
-appSynth :: (Domain d) => CompT -> Val d -> Context -> TErr (CompT,Context)
+appSynth :: (CompDomain e d) 
+         => CompT d 
+         -> Val e d 
+         -> Context d 
+         -> TErr (CompT d,Context d)
 appSynth mt v g = case mt of
   FunT vt mt' -> do 
     g1 <- checkV v vt g

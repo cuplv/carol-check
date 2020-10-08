@@ -1,10 +1,10 @@
 module Language.Carol.TypeCheck.SubCheck where
 
-import Language.Carol.AST
+import Language.Carol.AST.Types
 import Language.Carol.TypeCheck.Context
 import Language.Carol.TypeCheck.Inst
 
-subCheckV :: ValT -> ValT -> Context -> TErr Context
+subCheckV :: (Show d, Eq d) => ValT d -> ValT d -> Context d -> TErr (Context d)
 subCheckV vt1 vt2 g = case (vt1,vt2) of
   -- InstantiateL
   (ExVT a, vt2) -> instLV a vt2 g
@@ -14,7 +14,7 @@ subCheckV vt1 vt2 g = case (vt1,vt2) of
   _ | vt1 == vt2 -> return g
   _ -> Left $ show vt1 ++ " does not match " ++ show vt2
 
-subCheckC :: CompT -> CompT -> Context -> TErr Context
+subCheckC :: (Show d, Eq d) => CompT d -> CompT d -> Context d -> TErr (Context d)
 subCheckC mt1 mt2 g = case (mt1,mt2) of
   -- Exvar
   (ExCT b1,ExCT b2) | b1 == b2 -> return g

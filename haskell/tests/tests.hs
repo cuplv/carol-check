@@ -18,7 +18,7 @@ unitTests = testGroup "Unit tests"
      \               |x|  \
      \  mod a <- x as y|  \
      \  return y          "
-     (RetT IntT)
+     (RetT intT)
   ,typeCase
      "Mod"
      "return +1"
@@ -33,54 +33,54 @@ unitTests = testGroup "Unit tests"
      \  5`           |x|  \
      \  mod a <- x as y|  \
      \  return y          "
-     (RetT IntT)
+     (RetT intT)
   ,typeCase
     "Bind3"
     "return {=} to x| 5` |y| return (x,y)"
-    (RetT (PairT UnitT IntT))
+    (RetT (PairT UnitT intT))
   ,typeCase
     "Bind4"
     "return {=} to x| 5` |y| return (y,x)"
-    (RetT (PairT IntT UnitT))
+    (RetT (PairT intT UnitT))
   ,typeCase
     "ApFunApFun"
     "{=}` |x| 5` |y| return (x,y)"
-    (RetT (PairT UnitT IntT))
+    (RetT (PairT UnitT intT))
   ,testGroup "ApApFunFun"
      [typeCase
        "Fun2"
        "{=}` 5` |x| |y| return (x,y)"
-       (RetT (PairT IntT UnitT))
+       (RetT (PairT intT UnitT))
      ,typeCase
        "Fun3"
        "3` 1` {=}` |xU||x2||x3| return (x3,xU)"
-       (RetT (PairT IntT UnitT))
+       (RetT (PairT intT UnitT))
      ,typeCase
        "Fun4"
        "3` 1` {=}` {=}` |xU0||xU||x2||x3| return (x3,xU)"
-       (RetT (PairT IntT UnitT))
+       (RetT (PairT intT UnitT))
      ,typeCase
        "Fun5"
        "3` 1` {=}` {=}` 2` |x1||xU0||xU||x2||x3| return (x3,xU)"
-       (RetT (PairT IntT UnitT))
+       (RetT (PairT intT UnitT))
      ,typeCase
        "Fun6"
        "3` 1` {=}` {=}` 2` 8` |y||z||xU0||xU||x2||x3| return (x3,xU)"
-       (RetT (PairT IntT UnitT))
+       (RetT (PairT intT UnitT))
      ,typeCase
        "Bind1"
        "5` return {=} to x| |y| return (x,y)"
-       (RetT (PairT UnitT IntT))
+       (RetT (PairT UnitT intT))
      ,typeCase
        "Bind2"
        "5` return {=} to x| |y| return (y,x)"
-       (RetT (PairT IntT UnitT))
+       (RetT (PairT intT UnitT))
      ]
   ,testGroup "Specials"
      [typeCase
         "Query"
         "query LEQ as x| 5` |y| return (y,x)"
-        (RetT (PairT IntT IntT))
+        (RetT (PairT intT intT))
      ,typeCase
         "Issue"
         "issue +2 | return {=}"
@@ -108,11 +108,11 @@ unitTests = testGroup "Unit tests"
      ]
   ]
 
-typeCase :: String -> String -> CompT -> TestTree
+typeCase :: String -> String -> CompT' -> TestTree
 typeCase name s t =
   testCase name $ (t @=?) =<< typeOf s
 
-typeOf :: String -> IO CompT
+typeOf :: String -> IO CompT'
 typeOf m = do
   prog <- pComp m
   case synthC prog emptyContext of

@@ -1,27 +1,94 @@
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
+
 module Language.Carol.AST.Domain
-  ( Domain (..)
+  ( EmptyVD
+  , IntVD (..)
+  , intT
+  , intV
+  , IntCD (..)
+  , intModT
+  , intOrdT
+  , addV
+  , subV
+  , leqV
+  , geqV
+  , Val'
+  , ValT'
+  , Comp'
+  , CompT'
+  , HasValDomain
   ) where
 
 import Language.Carol.AST.Terms
 import Language.Carol.AST.Types
 
-class (Show d, Eq d, Ord d) => Domain d where
-  domSig :: d -> ([ValT], ValT)
-  domShow :: d -> [Val d] -> (Abst d) -> String
+import Data.Map (Map)
+import qualified Data.Map as M
 
-data EmptyD
+class (ValDomain s, ValDomain d) => HasValDomain s d where
+  liftType :: s -> d
+  liftVal :: DVal s -> DVal d
 
-instance Show EmptyD where
+instance (ValDomain d) => HasValDomain d d where
+  liftType = id
+  liftVal = id
+
+class HasCompDomain f e where
+  liftComp :: f -> e
+
+instance HasCompDomain e e where
+  liftComp = id
+
+data EmptyVD
+
+data EmptyVDV
+
+instance Show EmptyVD where
   show = undefined
-instance Eq EmptyD where
+instance Eq EmptyVD where
   a == b = undefined
-instance Ord EmptyD where
+instance Ord EmptyVD where
   a <= b = undefined
-instance Domain EmptyD where
-  domSig = undefined
-  domShow = undefined
 
-data IntD =
+instance ValDomain EmptyVD where
+  data DVal EmptyVD
+  dValType = undefined
+
+instance Show (DVal EmptyVD) where
+  show = undefined
+instance Eq (DVal EmptyVD) where
+  a == b = undefined
+instance Ord (DVal EmptyVD) where
+  a <= b = undefined
+
+data EmptyCD
+
+instance (ValDomain d) => CompDomain EmptyCD d where
+  dCompSig = undefined
+  dCompShow = undefined
+
+data IntVD = IntVD deriving (Eq,Ord)
+
+instance Show IntVD where
+  show _ = "Int"
+
+instance ValDomain IntVD where
+  data DVal IntVD = IntConst Int deriving (Eq,Ord)
+  dValType (IntConst _) = IntVD
+
+instance Show (DVal IntVD) where
+  show (IntConst n) = show n
+
+intT :: (HasValDomain IntVD d) => ValT d
+intT = DsT (liftType IntVD)
+
+intV :: (CompDomain e d, HasValDomain IntVD d) => Int -> Val e d
+intV = DsV . liftVal . IntConst
+
+data IntCD =
     IntMod
   | IntTest
   | IntQuery
@@ -30,38 +97,47 @@ data IntD =
   | IntConsume
   deriving (Show,Eq,Ord)
 
+intDEffSum :: (HasValDomain IntVD d) => Map SumId (ValT d)
 intDEffSum = M.fromList
-  [(SumId "Add", IntT)
-  ,(SumId "Sub", IntT)]
+  [(SumId "Add", intT)
+  ,(SumId "Sub", intT)]
 
+intModT :: (HasValDomain IntVD d) => ValT d
 intModT = SumT intDEffSum
 
+intDOrdSum :: (HasValDomain IntVD d) => Map SumId (ValT d)
 intDOrdSum = M.fromList
   [(SumId "LEQ", UnitT)
   ,(SumId "GEQ", UnitT)]
 
+intOrdT :: (HasValDomain IntVD d) => ValT d
 intOrdT = SumT intDOrdSum
 
-instance Domain IntD where
-  domSig IntMod = ([SumT intDEffSum, IntT], IntT)
-  domSig IntTest = ([SumT intDOrdSum, IntT, IntT], boolT)
-  domSig IntQuery = ([SumT intDOrdSum], IntT)
-  domSig IntIssue = ([SumT intDEffSum], UnitT)
-  domSig IntProduce = ([SumT intDEffSum], UnitT)
-  domSig IntConsume = ([SumT intDEffSum], UnitT)
+instance CompDomain IntCD IntVD where
+  dCompSig IntMod = ([SumT intDEffSum, intT], intT)
+  dCompSig IntTest = ([SumT intDOrdSum, intT, intT], boolT)
+  dCompSig IntQuery = ([SumT intDOrdSum], intT)
+  dCompSig IntIssue = ([SumT intDEffSum], UnitT)
+  dCompSig IntProduce = ([SumT intDEffSum], UnitT)
+  dCompSig IntConsume = ([SumT intDEffSum], UnitT)
 
-  domShow IntMod vs (x,m') =
-    "mod " ++ show vs ++ " as " ++ show x ++ "| " ++ show m'
-  domShow IntTest vs (x,m') =
-    "test " ++ show vs ++ " as " ++ show x ++ "| " ++ show m'
-  domShow _ _ (x,m') = "... " ++ show x ++ "| " ++ show m'
+  dCompShow IntMod vs = "mod " ++ show vs
+  dCompShow IntTest vs = "test " ++ show vs
 
-addV :: (Domain d) => Val d -> Val d
+addV :: (CompDomain e d, HasValDomain IntVD d) => Val e d -> Val e d
 addV = Sum intDEffSum (SumId "Add")
-subV :: (Domain d) => Val d -> Val d
+subV :: (CompDomain e d, HasValDomain IntVD d) => Val e d -> Val e d
 subV = Sum intDEffSum (SumId "Sub")
 
-leqV :: (Domain d) => Val d
+leqV :: (CompDomain e d, HasValDomain IntVD d) => Val e d
 leqV = Sum intDOrdSum (SumId "LEQ") Unit
-geqV :: (Domain d) => Val d
+geqV :: (CompDomain e d, HasValDomain IntVD d) => Val e d
 geqV = Sum intDOrdSum (SumId "GEQ") Unit
+
+type Val' = Val IntCD IntVD
+
+type ValT' = ValT IntVD
+
+type Comp' = Comp IntCD IntVD
+
+type CompT' = CompT IntVD
