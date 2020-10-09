@@ -80,6 +80,7 @@ compP = do
           ,strcatP
           ,strcmpP
           ,strgetP
+          ,strputP
           ,parensP compP]
   mxm2 <- optionMaybe (try extBindP)
   case mxm2 of

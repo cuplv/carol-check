@@ -7,6 +7,7 @@
 module Language.Carol.AST.Domain
   ( EmptyVD
   , StdVD (..)
+  , DVal (..)
   , intT
   , intV
   , stringT

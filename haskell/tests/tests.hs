@@ -113,6 +113,10 @@ unitTests = testGroup "Unit tests"
         "GetString"
         "strget as x| strcat x, x as y| return y"
         (RetT stringT)
+     ,typeCase
+        "PutString"
+        "\"Hi.\" ` |x| strput x | return {=}"
+        (RetT UnitT)
      ]
   ]
 
