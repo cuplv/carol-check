@@ -105,6 +105,14 @@ unitTests = testGroup "Unit tests"
         "ModOut"
         "True` |x| (mod +1 <- 5 as x| return {=}) to y| return x"
         (RetT boolT)
+     ,typeCase
+        "String"
+        "return \"Hello\\nWorld!\""
+        (RetT stringT)
+     ,typeCase
+        "GetString"
+        "strget as x| strcat x, x as y| return y"
+        (RetT stringT)
      ]
   ]
 

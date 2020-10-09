@@ -47,6 +47,9 @@ unitTP = string "{}" >> return UnitT
 intTP :: Parsec String s (ValT')
 intTP = string "Int" >> return intT
 
+strTP :: Parsec String s ValT'
+strTP = string "String" >> return stringT
+
 boolTP = string "Bool" >> return boolT
 pairTP = parensP $ do
   at <- vtypeP
@@ -74,6 +77,9 @@ compP = do
           ,issueP
           ,produceP
           ,consumeP
+          ,strcatP
+          ,strcmpP
+          ,strgetP
           ,parensP compP]
   mxm2 <- optionMaybe (try extBindP)
   case mxm2 of
@@ -110,6 +116,47 @@ modP = do
   spaces >> char '|' >> spaces
   m' <- compP
   return $ DsC IntMod [op,arg] (Just x,m')
+
+strcatP :: Parsec String s Comp'
+strcatP = do
+  string "strcat" >> spaces
+  s1 <- valP
+  spaces >> char ',' >> spaces
+  s2 <- valP
+  spaces >> string "as" >> spaces
+  x <- varIdentP
+  spaces >> char '|' >> spaces
+  m' <- compP
+  return $ DsC StrCat [s1,s2] (Just x, m')
+
+strcmpP :: Parsec String s Comp'
+strcmpP = do
+  string "strcmp" >> spaces
+  s1 <- valP
+  spaces >> char ',' >> spaces
+  s2 <- valP
+  spaces >> string "as" >> spaces
+  x <- varIdentP
+  spaces >> char '|' >> spaces
+  m' <- compP
+  return $ DsC StrCmp [s1,s2] (Just x, m')
+
+strgetP :: Parsec String s Comp'
+strgetP = do
+  string "strget"
+  spaces >> string "as" >> spaces
+  x <- varIdentP
+  spaces >> char '|' >> spaces
+  m' <- compP
+  return $ DsC StrGet [] (Just x, m')
+
+strputP :: Parsec String s Comp'
+strputP = do
+  string "strput" >> spaces
+  s1 <- valP
+  spaces >> char '|' >> spaces
+  m' <- compP
+  return $ DsC StrPut [s1] (Nothing, m')
 
 queryP :: Parsec String s Comp'
 queryP = do
@@ -177,6 +224,7 @@ valP = do
          [varP
          ,unitP
          ,intP
+         ,strP
          ,pairP
          ,trueP
          ,falseP
@@ -201,6 +249,14 @@ intP = ((intV . read) <$> (char '-' >> many1 digit)) <|> natP
 
 natP :: Parsec String s (Val')
 natP = (intV . read) <$> many1 digit
+
+strP :: Parsec String s Val'
+strP = do
+  s <- between (char '"') (char '"') (many p)
+  return (stringV s)
+  where p = satisfy (\c -> c /= '"' && c /= '\\')
+            <|> try (string "\\\"" >> return '"')
+            <|> try (string "\\n" >> return '\n')
 
 pairP :: Parsec String s (Val')
 pairP = parensP $ do
