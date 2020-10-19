@@ -1,4 +1,5 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Language.Carol.AST.Types
   ( ValT (..)
@@ -22,15 +23,23 @@ newtype SumId = SumId String deriving (Show,Eq,Ord)
 
 newtype ProdId = ProdId String deriving (Show,Eq,Ord)
 
-data ValT d =
+class RefDomain d where
+  data DRef d
+
+data (RefDomain d) => Refinement d =
+    RefAtom (DRef d)
+  | RefAnd (Refinement d) (Refinement d)
+  deriving (Eq,Ord)
+
+data (RefDomain d) => ValT d =
     ThunkT (CompT d)
   | SumT (Map SumId (ValT d))
   | UnitT
   | PairT (ValT d) (ValT d)
-  | DsT d
+  | DsT d (Refinement d)
   | ExVT ExIdV
   deriving (Eq,Ord)
-  
+
 instance (Show d, Eq d) => Show (ValT d) where
   show = \case
     ThunkT mt -> "U(" ++ show mt ++ ")"
