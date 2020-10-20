@@ -17,8 +17,10 @@ library
                      , Language.Carol.AST.Terms
                      , Language.Carol.AST.Types
                      , Language.Carol.AST.Domain
+                     , Language.Carol.AST.Refinement
                      , Language.Carol.AST.Types.ExVars
                      , Language.Carol.TypeCheck.Context
+                     , Language.Carol.TypeCheck.Error
                      , Language.Carol.TypeCheck.Inst
                      , Language.Carol.TypeCheck.SubCheck
   -- other-extensions:

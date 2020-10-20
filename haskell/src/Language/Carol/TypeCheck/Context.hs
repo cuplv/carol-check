@@ -15,7 +15,6 @@ module Language.Carol.TypeCheck.Context
   , substV
   , substC
   , inb42
-  , TErr
   , VarId
   ) where
 
@@ -23,11 +22,10 @@ import Language.Carol.AST.PrettyPrint
 import Language.Carol.AST.Terms (VarId)
 import Language.Carol.AST.Types
 import Language.Carol.AST.Types.ExVars
+import Language.Carol.TypeCheck.Error
 
 import Data.Map (Map)
 import qualified Data.Map as M
-
-type TErr = Either String
 
 -- | Existential variable declaration/binding for value types.
 data (RefDomain d) => ExV d =
@@ -117,37 +115,34 @@ newExC :: (RefDomain d) => Context d -> (Context d, ExIdC)
 newExC g = let b = ExIdC (nextEx g)
            in (ExCompT (ExC b Nothing) g, b)
 
-bindExV :: (RefDomain d) => ExIdV -> ValT d -> Context d -> TErr (Context d)
+bindExV :: (RefDomain d) => ExIdV -> ValT d -> Context d -> TErr d (Context d)
 bindExV a vt g = bindExVR g a vt g
 
-bindExVR :: (RefDomain d) => Context d -> ExIdV -> ValT d -> Context d -> TErr (Context d)
+bindExVR :: (RefDomain d) => Context d -> ExIdV -> ValT d -> Context d -> TErr d (Context d)
 bindExVR g0 a vt = \case
-  Empty -> Left $ "Cannot bind " ++  " because " 
-                  ++ "<" ++ show a ++ ">" 
-                  ++ " does not exist in context "
+  Empty -> terr $ TOther "Context cannot bind; missing exvar."
   ExValT (ExV a1    Nothing) g' | a == a1 -> 
     return $ ExValT (ExV a1 (Just vt)) g'
   ExValT (ExV a1 (Just vt1)) g' | a == a1 && vt == vt1 -> 
     return $ ExValT (ExV a1 (Just vt1)) g'
   ExValT (ExV a1 (Just vt1)) g' | a == a1 && vt /= vt1 ->
-    Left $ " is already solved to non-match: " 
+    terr $ TOther "Exvar already solved to non-match." 
   ExValT     e g' -> ExValT     e <$> bindExVR g0 a vt g'
   ExCompT    e g' -> ExCompT    e <$> bindExVR g0 a vt g'
   VarBind x t1 g' -> VarBind x t1 <$> bindExVR g0 a vt g'
 
-bindExC :: (RefDomain d) => ExIdC -> CompT d -> Context d -> TErr (Context d)
+bindExC :: (RefDomain d) => ExIdC -> CompT d -> Context d -> TErr d (Context d)
 bindExC b mt g = bindExCR g b mt g
 
-bindExCR :: (RefDomain d) => Context d -> ExIdC -> CompT d -> Context d -> TErr (Context d)
+bindExCR :: (RefDomain d) => Context d -> ExIdC -> CompT d -> Context d -> TErr d (Context d)
 bindExCR g0 b mt = \case
-  Empty -> Left $ "<|"  ++ "|>" 
-                  ++ " does not exist in context "
+  Empty -> terr $ TOther "Context cannot bind; missing comp-exvar."
   ExCompT (ExC b1    Nothing) g' | b == b1 -> 
     return $ ExCompT (ExC b1 (Just mt)) g'
   ExCompT (ExC b1 (Just mt1)) g' | b == b1 && mt == mt1 -> 
     return $ ExCompT (ExC b1 (Just mt1)) g'
   ExCompT (ExC b1 (Just mt1)) g' | b == b1 && mt /= mt1 ->
-    Left $ " is already solved to non-match: "
+    terr $ TOther "Comp-exvar is already solved to non-match."
   ExValT     e g' -> ExValT     e <$> bindExCR g0 b mt g'
   ExCompT    e g' -> ExCompT    e <$> bindExCR g0 b mt g'
   VarBind x t1 g' -> VarBind x t1 <$> bindExCR g0 b mt g'
@@ -155,16 +150,16 @@ bindExCR g0 b mt = \case
 varBind :: (RefDomain d) => VarId -> ValT d -> Context d -> Context d
 varBind = VarBind
 
-trimToVar :: (RefDomain d) => VarId -> Context d -> TErr (Context d)
+trimToVar :: (RefDomain d) => VarId -> Context d -> TErr d (Context d)
 trimToVar x = \case
-  Empty -> Left $ "Trim to var " ++ show x ++ " failed."
+  Empty -> terr $ TOther ("Trim to var " ++ show x ++ " failed.")
   ExValT _ g' -> trimToVar x g'
   ExCompT _ g' -> trimToVar x g'
   VarBind y t g' -> if x == y
                        then return g'
                        else trimToVar x g'
 
-substV :: (RefDomain d) => Context d -> ValT d -> TErr (ValT d)
+substV :: (RefDomain d) => Context d -> ValT d -> TErr d (ValT d)
 substV g = \case
   ThunkT mt -> ThunkT <$> substC g mt
   SumT ss -> do
@@ -177,10 +172,9 @@ substV g = \case
   ExVT a -> case existStatusV a g of
     ExBound t -> substV g t
     ExUnBound -> return $ ExVT a
-    ExNonExist -> Left $ "<" ++ ">" 
-                         ++ " doesn't exist? "
+    ExNonExist -> terr $ TOther "SubstV failed; missing exvar."
 
-substC :: (RefDomain d) => Context d -> CompT d -> TErr (CompT d)
+substC :: (RefDomain d) => Context d -> CompT d -> TErr d (CompT d)
 substC g = \case
   RetT vt -> RetT <$> substV g vt
   ProdT pp -> do
@@ -191,15 +185,16 @@ substC g = \case
   ExCT b -> case existStatusC b g of
     ExBoundC mt -> substC g mt
     ExUnBoundC -> return $ ExCT b
-    ExNonExistC -> Left $ "<|" ++ "|>" 
-                          ++ " doesn't exist? "
+    ExNonExistC -> terr $ TOther "SubstC failed; missing comp-exvar."
 
 onSnd :: (a -> b) -> (c1,c2,a) -> (c1,c2,b)
 onSnd f (c1,c2,a) = (c1,c2,f a)
 
-inb42 :: (RefDomain d) => ExIdC -> Context d -> TErr (ExIdV,ExIdC,Context d)
+inb42 :: (RefDomain d) => ExIdC -> Context d -> TErr d (ExIdV,ExIdC,Context d)
 inb42 b = \case
-  Empty -> Left $ show b ++ " was not in context."
+  Empty -> terr $ TOther ("inb42 failed; " 
+                          ++ show b 
+                          ++ " was not in context.")
   ExValT e g' -> onSnd (ExValT e) <$> inb42 b g'
   ExCompT (ExC (ExIdC b1) Nothing) g' | b == ExIdC b1 ->
     let eTmp = exTypeIdSub b1

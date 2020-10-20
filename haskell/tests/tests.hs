@@ -122,7 +122,7 @@ unitTests = testGroup "Unit tests"
 
 typeCase :: String -> String -> CompT' -> TestTree
 typeCase name s t =
-  testCase name $ (t @=?) =<< typeOf s
+  testCase name $ (t @=?) =<< (baseTypeC <$> typeOf s)
 
 typeOf :: String -> IO CompT'
 typeOf m = do
@@ -130,8 +130,8 @@ typeOf m = do
   case synthC prog emptyContext of
     Right (mt,g) -> case substC g mt of
       Right mt' -> return mt'
-      Left e -> assertFailure e
-    Left e -> assertFailure e
+      Left e -> assertFailure (pretty e)
+    Left e -> assertFailure (pretty e)
 
 pComp :: String -> IO Comp'
 pComp s = case parseComp s of

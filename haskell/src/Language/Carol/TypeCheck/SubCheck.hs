@@ -3,8 +3,13 @@ module Language.Carol.TypeCheck.SubCheck where
 import Language.Carol.AST.Types
 import Language.Carol.TypeCheck.Context
 import Language.Carol.TypeCheck.Inst
+import Language.Carol.TypeCheck.Error
 
-subCheckV :: (RefDomain d) => ValT d -> ValT d -> Context d -> TErr (Context d)
+subCheckV :: (RefDomain d)
+  => ValT d
+  -> ValT d
+  -> Context d
+  -> TErr d (Context d)
 subCheckV vt1 vt2 g = case (vt1,vt2) of
   -- InstantiateL
   (ExVT a, vt2) -> instLV a vt2 g
@@ -12,9 +17,15 @@ subCheckV vt1 vt2 g = case (vt1,vt2) of
   (vt1, ExVT a) -> bindExV a vt1 g
   -- Unit, etc.
   _ | vt1 == vt2 -> return g
-  _ -> Left $ " does not match "
+  (DsT t1 r1, DsT t2 r2) | t1 == t2 -> 
+    terr $ TOther "Ref comparison not implemented."
+  _ -> terr $ TMismatch vt1 vt2
 
-subCheckC :: (RefDomain d) => CompT d -> CompT d -> Context d -> TErr (Context d)
+subCheckC :: (RefDomain d)
+  => CompT d
+  -> CompT d
+  -> Context d
+  -> TErr d (Context d)
 subCheckC mt1 mt2 g = case (mt1,mt2) of
   -- Exvar
   (ExCT b1,ExCT b2) | b1 == b2 -> return g

@@ -15,11 +15,14 @@ module Language.Carol.AST.Types
   , ProdId (..)
   , ExIdV
   , ExIdC
+  , baseTypeV
+  , baseTypeC
   , RefDomain (..)
   , Refinement (..)
   ) where
 
 import Language.Carol.AST.PrettyPrint
+import Language.Carol.AST.Refinement
 import Language.Carol.AST.Types.ExVars (ExIdV,ExIdC)
 
 import Data.Map (Map)
@@ -28,28 +31,6 @@ import qualified Data.Map as M
 newtype SumId = SumId String deriving (Show,Eq,Ord)
 
 newtype ProdId = ProdId String deriving (Show,Eq,Ord)
-
-class (Eq d, Eq (DRef d), Ord d, Ord (DRef d))
-    => RefDomain d where
-  data DRef d
-
-data (RefDomain d) => Refinement d =
-    RefTrue
-  | RefFalse
-  | RefAtom (DRef d)
-  | RefAnd (Refinement d) (Refinement d)
-  deriving (Eq,Ord)
-
-deriving instance (RefDomain d, Show (DRef d))
-    => Show (Refinement d)
-
-instance (RefDomain d, Pretty (DRef d))
-    => Pretty (Refinement d) where
-  pretty = \case
-    RefTrue -> "⊤"
-    RefFalse -> "⊥"
-    RefAtom r -> pretty r
-    RefAnd r1 r2 -> pretty r1 ++ " ∧ " ++ pretty r2
 
 data (RefDomain d) => ValT d =
     ThunkT (CompT d)
@@ -73,6 +54,15 @@ instance (RefDomain d, Pretty d, Pretty (DRef d))
     DsT t RefTrue -> pretty t
     DsT t r -> "{ ν:" ++ pretty t ++ " | " ++ pretty r ++ " }"
     ExVT e -> pretty e
+
+baseTypeV :: (RefDomain d) => ValT d -> ValT d
+baseTypeV = \case
+  ThunkT mt -> ThunkT $ baseTypeC mt
+  SumT mp -> SumT $ M.map baseTypeV mp
+  UnitT -> UnitT
+  PairT vt1 vt2 -> PairT (baseTypeV vt1) (baseTypeV vt2)
+  DsT t r -> DsT t RefTrue -- remove refinement
+  ExVT e -> ExVT e
 
 trueS = SumId "True"
 falseS = SumId "False"
@@ -99,3 +89,11 @@ instance (RefDomain d, Pretty d, Pretty (DRef d))
     ProdT mp -> "Π(" ++ "..." ++ ")"
     FunT vt mt' -> pretty vt ++ " → " ++ pretty mt'
     ExCT e -> pretty e
+
+
+baseTypeC :: (RefDomain d) => CompT d -> CompT d
+baseTypeC = \case
+  RetT vt -> RetT $ baseTypeV vt
+  ProdT mp -> ProdT $ M.map baseTypeC mp
+  FunT vt mt -> FunT (baseTypeV vt) (baseTypeC mt)
+  ExCT e -> ExCT e
