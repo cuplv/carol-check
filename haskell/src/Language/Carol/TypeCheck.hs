@@ -31,13 +31,14 @@ synthV v g = case v of
   Thunk m -> undefined
   Sum sc i v' -> case M.lookup i sc of
     Just vt -> checkV v' vt g >>= \g' -> return (SumT sc, g')
-    Nothing -> Left $ show i ++ " not in " ++ show sc
+    Nothing -> Left $ " not in "
   Unit -> return (UnitT, g)
   Pair v1 v2 -> do
     (vt1,g1) <- synthV v1 g
     (vt2,g2) <- synthV v2 g1
     return (PairT vt1 vt2, g2)
-  DsV dv -> return (DsT (dValType dv), g)
+  DsV dv -> let (d,r) = dValType dv
+            in return (DsT d r, g)
   Anno v1 vt -> do
     g1 <- checkV v1 vt g
     return (vt, g1)

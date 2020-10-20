@@ -6,14 +6,14 @@ module Language.Carol.TypeCheck.Inst
 import Language.Carol.AST.Types
 import Language.Carol.TypeCheck.Context
 
-instLV :: (Show d, Eq d) => ExIdV -> ValT d -> Context d -> TErr (Context d)
+instLV :: (RefDomain d) => ExIdV -> ValT d -> Context d -> TErr (Context d)
 instLV a vt g = case vt of
   -- InstLReach
   ExVT a1 | a < a1 -> bindExV a1 (ExVT a) g
   -- InstLSolve
   vt -> bindExV a vt g
 
-instRC :: (Show d, Eq d) => CompT d -> ExIdC -> Context d -> TErr (Context d)
+instRC :: (RefDomain d) => CompT d -> ExIdC -> Context d -> TErr (Context d)
 instRC mt b g = case mt of
   -- InstRReach
   ExCT b1 | b < b1 -> bindExC b1 (ExCT b) g

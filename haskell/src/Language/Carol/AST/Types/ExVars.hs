@@ -7,6 +7,8 @@ module Language.Carol.AST.Types.ExVars
   , ExIdC (..)
   ) where
 
+import Language.Carol.AST.PrettyPrint
+
 data ExTypeId =
   ExTypeId Int (Maybe ExTypeId)
   deriving (Eq)
@@ -14,6 +16,9 @@ data ExTypeId =
 instance Show ExTypeId where
   show (ExTypeId n Nothing) = show n
   show (ExTypeId n (Just e)) = show n ++ "-" ++ show e
+
+instance Pretty ExTypeId where
+  pretty = show
 
 instance Ord ExTypeId where
   e1 <= e2 = case (e1,e2) of
@@ -47,7 +52,13 @@ newtype ExIdV = ExIdV ExTypeId deriving (Eq,Ord)
 instance Show ExIdV where
   show (ExIdV e) = "<" ++ show e ++ ">"
 
+instance Pretty ExIdV where
+  pretty = show
+
 newtype ExIdC = ExIdC ExTypeId deriving (Eq,Ord)
 
 instance Show ExIdC where
   show (ExIdC e) = "<|" ++ show e ++ "|>"
+
+instance Pretty ExIdC where
+  pretty = show

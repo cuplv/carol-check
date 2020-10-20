@@ -15,20 +15,25 @@ module Language.Carol.AST.Terms
 import Data.Map (Map)
 import qualified Data.Map as M
 
+import Language.Carol.AST.PrettyPrint
 import Language.Carol.AST.Types
 
-class (Show d, Show (DVal d), Eq d, Eq (DVal d), Ord d, Ord (DVal d)) => ValDomain d where
+class (RefDomain d, Eq (DVal d), Ord (DVal d))
+    => ValDomain d where
   data DVal d
-  dValType :: DVal d -> d
+  dValType :: DVal d -> (d, Refinement d)
 
 class (ValDomain d) => CompDomain e d where
   dCompSig :: e -> ([ValT d], ValT d)
-  dCompShow :: e -> [Val e d] -> String
+  dCompPretty :: e -> [Val e d] -> String
 
 newtype VarId = VarId String deriving (Eq,Ord)
 
 instance Show VarId where
   show (VarId s) = s
+
+instance Pretty VarId where
+  pretty = show
 
 data (CompDomain e d) => Val e d =
     Var VarId
@@ -40,14 +45,15 @@ data (CompDomain e d) => Val e d =
   | Anno (Val e d) (ValT d)
   deriving (Eq,Ord)
 
-instance (CompDomain e d) => Show (Val e d) where
-  show = \case
-    Var i -> show i
-    Thunk m -> "thunk " ++ show m
-    Sum mp (SumId s) v -> s ++ "(" ++ show v ++ ")"
+instance (Pretty d, Pretty (DRef d), CompDomain e d) 
+    => Pretty (Val e d) where
+  pretty = \case
+    Var i -> pretty i
+    Thunk m -> "thunk " ++ pretty m
+    Sum mp (SumId s) v -> s ++ "(" ++ pretty v ++ ")"
     Unit -> "{=}"
-    Pair v1 v2 -> "(" ++ show v1 ++ ", " ++ show v2 ++ ")"
-    Anno v vt -> show v ++ " : " ++ show vt
+    Pair v1 v2 -> "(" ++ pretty v1 ++ ", " ++ pretty v2 ++ ")"
+    Anno v vt -> pretty v ++ " : " ++ pretty vt
 
 boolV :: (CompDomain e d) => Bool -> Val e d
 boolV b = Sum boolSchema i Unit
@@ -71,19 +77,23 @@ data (CompDomain e d) => Comp e d =
   | DsC e [Val e d] (Maybe VarId, Comp e d)
   deriving (Eq,Ord)
 
-sha :: (Show a, Show b) => (a,b) -> String
-sha (x,m') = show x ++ "| " ++ show m'
+sha :: (Pretty a, Pretty b) => (a,b) -> String
+sha (x,m') = pretty x ++ "| " ++ pretty m'
 
-instance (CompDomain e d) => Show (Comp e d) where
-  show = \case
-    Ret v -> "return " ++ show v
-    Prod pm -> "{" ++ show pm ++ "}"
+instance (Pretty d, Pretty (DRef d), CompDomain e d) 
+    => Pretty (Comp e d) where
+  pretty = \case
+    Ret v -> "return " ++ pretty v
+    Prod pm -> "{" ++ "..." ++ "}"
     Fun xm -> "|" ++ sha xm
-    Let v xm -> "let " ++ show v ++ " be " ++ sha xm
-    Bind m1 xm -> show m1 ++ " to " ++ sha xm
-    Pmp v (x,y,m') -> "pm " ++ show v ++ " as " ++ show (x,y) ++ "| " ++ show m'
-    Pms v mp -> "pm " ++ show v ++ " as {" ++ show mp ++ "}"
-    Proj i m' -> show i ++ "`" ++ show m'
-    Ap v m' -> show v ++ "`" ++ show m'
-    DsC e vs (Just x,m') -> dCompShow e vs ++ " as " ++ sha (x,m')
-    DsC e vs (Nothing,m') -> dCompShow e vs ++ " |" ++ show m'
+    Let v xm -> "let " ++ pretty v ++ " be " ++ sha xm
+    Bind m1 xm -> pretty m1 ++ " to " ++ sha xm
+    Pmp v (x,y,m') -> "pm " ++ pretty v ++ " as " ++ show (x,y) 
+                      ++ "| " ++ pretty m'
+    Pms v mp -> "pm " ++ pretty v ++ " as {" ++ "..." ++ "}"
+    Proj i m' -> show i ++ "`" ++ pretty m'
+    Ap v m' -> pretty v ++ "`" ++ pretty m'
+    DsC e vs (Just x,m') -> dCompPretty e vs ++ " as " 
+                            ++ sha (x,m')
+    DsC e vs (Nothing,m') -> dCompPretty e vs ++ " |" 
+                             ++ pretty m'
