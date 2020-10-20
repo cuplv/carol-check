@@ -1,5 +1,9 @@
 module Language.Carol.TypeCheck.SubCheck where
 
+import Data.SBV
+import Control.Monad.IO.Class
+
+import Language.Carol.AST.Refinement
 import Language.Carol.AST.Types
 import Language.Carol.TypeCheck.Context
 import Language.Carol.TypeCheck.Inst
@@ -17,8 +21,16 @@ subCheckV vt1 vt2 g = case (vt1,vt2) of
   (vt1, ExVT a) -> bindExV a vt1 g
   -- Unit, etc.
   _ | vt1 == vt2 -> return g
-  (DsT t1 r1, DsT t2 r2) | t1 == t2 -> 
-    terr $ TOther "Ref comparison not implemented."
+  (DsT t1 r1, DsT t2 r2) | t1 == t2 -> do
+    result <- liftIO . prove $ do
+      nu <- forall "nu"
+      return $ rpred r2 nu .=> rpred r1 nu
+    liftIO $ print result
+    case result of
+      ThmResult (Unsatisfiable _ _) -> return g
+      ThmResult (Satisfiable _ _) -> 
+        terr $ TMismatch vt1 vt2
+    -- terr $ TOther "Ref comparison not implemented."
   _ -> terr $ TMismatch vt1 vt2
 
 subCheckC :: (RefDomain d)

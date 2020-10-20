@@ -34,7 +34,7 @@ synthV :: (CompDomain e d)
   -> TErr d (ValT d, Context d)
 synthV v g = case v of
   Var x -> case isBound x g of
-    Just t -> Right (t,g)
+    Just t -> return (t,g)
     Nothing -> terr $ TOther ("Unbound variable \""
                               ++ show x ++ "\"")
   Thunk m -> undefined

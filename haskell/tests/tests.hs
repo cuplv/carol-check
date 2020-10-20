@@ -4,6 +4,7 @@ import Language.Carol.AST
 import Language.Carol.Parse
 import Language.Carol.TypeCheck
 
+import Control.Monad.Except
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -118,19 +119,44 @@ unitTests = testGroup "Unit tests"
         "\"Hi.\" ` |x| strput x | return {=}"
         (RetT UnitT)
      ]
+  ,testGroup "Sub"
+     [refTypeCase
+        "SimpleRange" 
+        "return 5"
+        (RetT $ intTR 5 5)
+     -- ,typeCaseNot
+     --    "NotInRange"
+     --    "return 5"
+     --    (RetT $ intTR 10 20)
+     ,refTypeCase
+        "FunRange"
+        "5` |x| return x"
+        (RetT $ intTR 5 5)
+     ]
   ]
 
 typeCase :: String -> String -> CompT' -> TestTree
 typeCase name s t =
   testCase name $ (t @=?) =<< (baseTypeC <$> typeOf s)
 
+refTypeCase :: String -> String -> CompT' -> TestTree
+refTypeCase name s t =
+  testCase name $ (t @=?) =<< typeOf s
+
+-- typeCaseNot :: String -> String -> CompT' -> TestTree
+-- typeCaseNot name s t =
+--   testCase name $ (t @/=?) =<< (baseTypeC <$> typeOf s)
+
 typeOf :: String -> IO CompT'
 typeOf m = do
   prog <- pComp m
-  case synthC prog emptyContext of
-    Right (mt,g) -> case substC g mt of
-      Right mt' -> return mt'
-      Left e -> assertFailure (pretty e)
+  result <- runExceptT $ synthC prog emptyContext
+  case result of
+    Right (mt,g) -> do
+      r' <- runExceptT $ substC g mt
+      case r' of
+        Right mt' -> return mt'
+        Left e -> assertFailure (pretty e)
     Left e -> assertFailure (pretty e)
 
 pComp :: String -> IO Comp'

@@ -7,13 +7,15 @@ module Language.Carol.TypeCheck.Error
   , TypeError (..)
   ) where
 
+import Control.Monad.Except
+
 import Language.Carol.AST.PrettyPrint
 import Language.Carol.AST.Types
 
-type TErr d = Either (TypeError d)
+type TErr d = ExceptT (TypeError d) IO
 
 terr :: (RefDomain d) => TypeError d -> TErr d a
-terr = Left
+terr = throwError
 
 data TypeError d =
     TMismatch (ValT d) (ValT d)

@@ -9,6 +9,9 @@ module Language.Carol.AST.Domain
   , StdVD (..)
   , DVal (..)
   , intT
+  , intTLe
+  , intTGe
+  , intTR
   , intV
   , stringT
   , stringV
@@ -34,6 +37,7 @@ import Language.Carol.AST.Types
 
 import Data.Map (Map)
 import qualified Data.Map as M
+import Data.SBV
 
 data EmptyVD
 
@@ -48,6 +52,7 @@ instance Pretty EmptyVD where
 
 instance RefDomain EmptyVD where
   data DRef EmptyVD
+  refConstraint = undefined
 
 instance Eq (DRef EmptyVD) where
   a == b = undefined
@@ -88,6 +93,9 @@ instance Pretty StdVD where
 
 instance RefDomain StdVD where
   data DRef StdVD = LEQ Int | GEQ Int deriving (Show,Eq,Ord)
+  refConstraint = \case
+    LEQ i -> \v -> v .<= literal (fromIntegral i)
+    GEQ i -> \v -> v .>= literal (fromIntegral i)
 
 instance Pretty (DRef StdVD) where
   pretty (LEQ n) = "ν ≤ " ++ show n
@@ -96,8 +104,8 @@ instance Pretty (DRef StdVD) where
 instance ValDomain StdVD where
   data DVal StdVD = IntConst Int | StrConst String deriving (Show,Eq,Ord)
   dValType (IntConst n) = (IntT, RefAnd 
-                                   (RefAtom $ LEQ n) 
-                                   (RefAtom $ GEQ n))
+                                   (RefAtom $ GEQ n) 
+                                   (RefAtom $ LEQ n))
   dValType (StrConst _) = (StrT, RefTrue)
 
 instance Pretty (DVal StdVD) where
@@ -106,6 +114,17 @@ instance Pretty (DVal StdVD) where
 
 intT :: ValT StdVD
 intT = DsT IntT RefTrue
+
+intTLe :: Int -> ValT StdVD
+intTLe n = DsT IntT (RefAtom $ LEQ n)
+
+intTGe :: Int -> ValT StdVD
+intTGe n = DsT IntT (RefAtom $ GEQ n)
+
+intTR :: Int -> Int -> ValT StdVD
+intTR low high = DsT IntT (RefAnd 
+                             (RefAtom $ GEQ low) 
+                             (RefAtom $ LEQ high))
 
 intV :: (CompDomain e StdVD) => Int -> Val e StdVD
 intV = DsV . IntConst
