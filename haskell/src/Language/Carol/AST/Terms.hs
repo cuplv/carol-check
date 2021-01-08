@@ -75,6 +75,7 @@ data (CompDomain e d) => Comp e d =
   | Proj ProdId (Comp e d)
   | Ap (Val e d) (Comp e d)
   | DsC e [Val e d] (Maybe VarId, Comp e d)
+  | AnnoC (Comp e d) (CompT d)
   deriving (Eq,Ord)
 
 sha :: (Pretty a, Pretty b) => (a,b) -> String

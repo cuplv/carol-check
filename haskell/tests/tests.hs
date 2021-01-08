@@ -24,6 +24,7 @@ unitTests = testGroup "Unit tests"
      "Mod"
      "return +1"
      (RetT intModT)
+  ,testCase "Mod2" $ checks ("return +1" |:- RetT intModT)
   ,typeCase
      "Function"
      "|asdf1234| return asdf1234 : {}"
@@ -124,6 +125,7 @@ unitTests = testGroup "Unit tests"
         "SimpleRange" 
         "return 5"
         (RetT $ intTR 5 5)
+     ,testCase "SimpleRange2" . checks $ "return 5" |:- RetT (intTR 4 6)
      -- ,typeCaseNot
      --    "NotInRange"
      --    "return 5"
@@ -132,8 +134,27 @@ unitTests = testGroup "Unit tests"
         "FunRange"
         "5` |x| return x"
         (RetT $ intTR 5 5)
+     ,testCase "FunRange2" . checks $ "5` |x| return x" |:- RetT (intTR 4 6)
      ]
   ]
+
+(-:-) :: Comp' -> CompT' -> IO Comp'
+(-:-) m mt = return $ AnnoC m mt
+
+(|:-) :: String -> CompT' -> IO Comp'
+(|:-) s mt = pComp s >>= (\m -> m -:- mt)
+
+closedCompT :: Comp' -> TErr StdVD CompT'
+closedCompT comp = do
+  (mt,g) <- synthC comp emptyContext
+  substC g mt
+
+checks :: IO Comp' -> Assertion
+checks em = do
+  result <- runExceptT . closedCompT =<< em
+  case result of
+    Right _ -> return ()
+    Left e -> assertFailure (pretty e)
 
 typeCase :: String -> String -> CompT' -> TestTree
 typeCase name s t =

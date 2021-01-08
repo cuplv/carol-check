@@ -5,6 +5,7 @@ module Language.Carol.TypeCheck
   , synthV
   , checkC
   , synthC
+  , TErr
   , Context
   , emptyContext
   , substC
@@ -103,6 +104,13 @@ synthC m g = case m of
     case mx of
       Just x -> synthC m' (varBind x outVT g1)
       Nothing -> synthC m' g1
+  -- AnnoC m mt -> do
+  --   (mt1,g1) <- synthC m g
+  --   g2 <- subCheckC mt mt1 g1
+  --   return (mt1,g2)
+  AnnoC m mt -> do
+    g1 <- checkC m mt g
+    return (mt,g1)
 
 appSynth :: (CompDomain e d) 
          => CompT d 
