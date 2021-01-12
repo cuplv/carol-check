@@ -139,6 +139,11 @@ unitTests = testGroup "Unit tests"
                                          (RetT (PairT (intTR 4 8) UnitT))
         ,t "FunType2"
            misses $ "|x| return x" |:- FunT (intTR 0 9) (RetT (intTR 4 8))
+        ,testCase "FunType3"
+         . checks
+         $ "              |x|\
+           \mod +3 <- x as y|\
+           \return y" |:- FunT (intTGe 0) (RetT (intTGe 3))
         ]
   ]
 
