@@ -25,9 +25,9 @@ checkV :: (CompDomain e d)
   -> ValT d
   -> Context d
   -> TErr d (Context d)
-checkV v vt1 g = do
-  (vt2,g1) <- synthV v g
-  subCheckV vt1 vt2 g1
+checkV v vt g = do
+  (vt1,g1) <- synthV v g
+  subCheckV vt1 vt g1
 
 synthV :: (CompDomain e d)
   => Val e d

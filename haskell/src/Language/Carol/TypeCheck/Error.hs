@@ -25,5 +25,5 @@ data TypeError d =
 instance (RefDomain d, Pretty d, Pretty (DRef d))
     => Pretty (TypeError d) where
   pretty (TMismatch vt1 vt2) = 
-    pretty vt2 ++ " does not satisfy " ++ pretty vt1
+    pretty vt1 ++ " does not satisfy " ++ pretty vt2
   pretty (TOther s) = "Error: " ++ show s

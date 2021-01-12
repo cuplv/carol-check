@@ -9,6 +9,8 @@ import Language.Carol.TypeCheck.Context
 import Language.Carol.TypeCheck.Inst
 import Language.Carol.TypeCheck.Error
 
+-- | Check that the first value type a subtype of the second value
+-- type.
 subCheckV :: (RefDomain d)
   => ValT d
   -> ValT d
@@ -22,17 +24,16 @@ subCheckV vt1 vt2 g = case (vt1,vt2) of
   -- Unit, etc.
   _ | vt1 == vt2 -> return g
   (DsT t1 r1, DsT t2 r2) | t1 == t2 -> do
-    result <- liftIO . prove $ do
+    result <- liftIO . isTheorem $ do
       nu <- forall "nu"
-      return $ rpred r2 nu .=> rpred r1 nu
-    liftIO $ print result
-    case result of
-      ThmResult (Unsatisfiable _ _) -> return g
-      ThmResult (Satisfiable _ _) -> 
-        terr $ TMismatch vt1 vt2
-    -- terr $ TOther "Ref comparison not implemented."
+      return $ rpred r1 nu .=> rpred r2 nu
+    if result
+       then return g
+       else terr $ TMismatch vt1 vt2
   _ -> terr $ TMismatch vt1 vt2
 
+-- | Check that the first computation type a subtype of the second
+-- computation type.
 subCheckC :: (RefDomain d)
   => CompT d
   -> CompT d
