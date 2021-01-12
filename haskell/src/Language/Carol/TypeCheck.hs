@@ -6,6 +6,7 @@ module Language.Carol.TypeCheck
   , checkC
   , synthC
   , TErr
+  , TypeError
   , Context
   , emptyContext
   , substC

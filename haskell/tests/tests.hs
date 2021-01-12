@@ -13,13 +13,12 @@ main = defaultMain tests
 tests = testGroup "Tests" [unitTests]
 
 unitTests = testGroup "Unit tests"
-  [typeCase
-     "Double app"
-     "  5` +1`       |a|  \
+  [testCase "Double app" 
+   . checks
+   $ "  5` +1`       |a|  \
      \               |x|  \
      \  mod a <- x as y|  \
-     \  return y          "
-     (RetT intT)
+     \  return y          " |:- RetT intT
   ,typeCase
      "Mod"
      "return +1"
@@ -111,31 +110,30 @@ unitTests = testGroup "Unit tests"
         "String"
         "return \"Hello\\nWorld!\""
         (RetT stringT)
-     ,typeCase
-        "GetString"
-        "strget as x| strcat x, x as y| return y"
-        (RetT stringT)
-     ,typeCase
-        "PutString"
-        "\"Hi.\" ` |x| strput x | return {=}"
-        (RetT UnitT)
+     ,testCase "GetString"
+      . checks
+      $ "strget as x| strcat x, x as y| return y" |:- RetT stringT
+     ,testCase "PutString"
+      . checks
+      $ "\"Hi.\" ` |x| strput x | return {=}" |:- RetT UnitT
      ]
-  ,testGroup "Sub"
-     [refTypeCase
-        "SimpleRange" 
-        "return 5"
-        (RetT $ intTR 5 5)
-     ,testCase "SimpleRange2" . checks $ "return 5" |:- RetT (intTR 4 6)
-     -- ,typeCaseNot
-     --    "NotInRange"
-     --    "return 5"
-     --    (RetT $ intTR 10 20)
-     ,refTypeCase
-        "FunRange"
-        "5` |x| return x"
-        (RetT $ intTR 5 5)
-     ,testCase "FunRange2" . checks $ "5` |x| return x" |:- RetT (intTR 4 6)
-     ]
+  ,testGroup "Sub" $
+     let t n c m = testCase n . c $ m
+     in [t "SimpleRange1" 
+           checks $ "return 5" |:- RetT (intTR 5 5)
+        ,t "SimpleRange2" 
+           checks $ "return 5" |:- RetT (intTR 4 6)
+        ,t "SimpleRange3" 
+           misses $ "return 5" |:- RetT (intTR 6 6)
+        ,t "SimpleRange4" -- The ref in this case is always unsat
+           misses $ "return 5" |:- RetT (intTR 10 2)
+        ,t "Bound1" checks $ "return 5" |:- RetT (intTGe 0)
+        ,t "Bound2" misses $ "return 5" |:- RetT (intTLe 0)
+        ,t "FunRange1" 
+           checks $ "5` |x| return x" |:- RetT (intTR 5 5)
+        ,t "FunRange2" 
+           checks $ "5` |x| return x" |:- RetT (intTR 4 6)
+        ]
   ]
 
 (-:-) :: Comp' -> CompT' -> IO Comp'
@@ -156,6 +154,17 @@ checks em = do
     Right _ -> return ()
     Left e -> assertFailure (pretty e)
 
+misses :: IO Comp' -> Assertion
+misses = misses' (const True)
+
+misses' :: (TypeError StdVD -> Bool) -> IO Comp' -> Assertion
+misses' pred em = do
+  result <- runExceptT . closedCompT =<< em
+  case result of
+    Left e | pred e -> return ()
+    Left e -> assertFailure $ "Wrong kind of check failure: " ++ pretty e
+    Right t -> assertFailure $ "Should have failed, but got " ++ pretty t
+
 typeCase :: String -> String -> CompT' -> TestTree
 typeCase name s t =
   testCase name $ (t @=?) =<< (baseTypeC <$> typeOf s)
@@ -163,10 +172,6 @@ typeCase name s t =
 refTypeCase :: String -> String -> CompT' -> TestTree
 refTypeCase name s t =
   testCase name $ (t @=?) =<< typeOf s
-
--- typeCaseNot :: String -> String -> CompT' -> TestTree
--- typeCaseNot name s t =
---   testCase name $ (t @/=?) =<< (baseTypeC <$> typeOf s)
 
 typeOf :: String -> IO CompT'
 typeOf m = do
