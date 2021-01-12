@@ -133,6 +133,12 @@ unitTests = testGroup "Unit tests"
            checks $ "5` |x| return x" |:- RetT (intTR 5 5)
         ,t "FunRange2" 
            checks $ "5` |x| return x" |:- RetT (intTR 4 6)
+        ,testCase "FunType1"
+         . checks
+         $ "|x| return (x,{=})" |:- FunT (intTR 4 6)
+                                         (RetT (PairT (intTR 4 8) UnitT))
+        ,t "FunType2"
+           misses $ "|x| return x" |:- FunT (intTR 0 9) (RetT (intTR 4 8))
         ]
   ]
 
