@@ -100,6 +100,8 @@ synthC m g = case m of
     mt' <- substC g1 mt
     appSynth mt' v g1
   DsC d vs (mx,m') -> do
+    -- DsC should follow model of Ap (or Bind), and thus should start
+    -- with synthesizing a fun-type for (mx,m')
     let (vts,outVT) = dCompSig d
     g1 <- foldM (\g (v,vt) -> checkV v vt g) g (zip vs vts)
     case mx of

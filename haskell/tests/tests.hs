@@ -144,6 +144,14 @@ unitTests = testGroup "Unit tests"
          $ "              |x|\
            \mod +3 <- x as y|\
            \return y" |:- FunT (intTGe 0) (RetT (intTGe 3))
+        ,testCase "SubBind1"
+         . checks
+         $ "|x| return x to y| return y" |:- (FunT (intTR 4 8)
+                                                   (RetT (intTR 0 9)))
+        ,testCase "SubBind2"
+         . misses
+         $ "|x| return x to y| return y" |:- (FunT (intTR 0 9)
+                                                   (RetT (intTR 4 8)))
         ]
   ]
 
