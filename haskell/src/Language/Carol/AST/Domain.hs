@@ -16,17 +16,18 @@ module Language.Carol.AST.Domain
   , stringT
   , stringV
   , StdCD (..)
-  , intModT
-  , intOrdT
-  , addV
-  , subV
-  , leqV
-  , geqV
-  , optionT
-  , someV
-  , noneV
+  -- , intModT
+  -- , intOrdT
+  -- , addV
+  -- , subV
+  -- , leqV
+  -- , geqV
+  -- , optionT
+  -- , someV
+  -- , noneV
   , Val'
   , ValT'
+  , ValTR'
   , Comp'
   , CompT'
   ) where
@@ -52,7 +53,7 @@ instance Pretty EmptyVD where
 
 instance RefDomain EmptyVD where
   data DRef EmptyVD
-  refConstraint = undefined
+  -- refConstraint = undefined
 
 instance Eq (DRef EmptyVD) where
   a == b = undefined
@@ -92,20 +93,25 @@ instance Pretty StdVD where
   pretty = show
 
 instance RefDomain StdVD where
-  data DRef StdVD = LEQ Int | GEQ Int deriving (Show,Eq,Ord)
-  refConstraint = \case
-    LEQ i -> \v -> v .<= literal (fromIntegral i)
-    GEQ i -> \v -> v .>= literal (fromIntegral i)
+  data DRef StdVD = 
+      RefTrue 
+    | RefAnd (DRef StdVD) (DRef StdVD)
+    | LEQ Int 
+    | GEQ Int 
+    deriving (Show,Eq,Ord)
+  -- refConstraint = \case
+  --   LEQ i -> \v -> v .<= literal (fromIntegral i)
+  --   GEQ i -> \v -> v .>= literal (fromIntegral i)
 
 instance Pretty (DRef StdVD) where
+  pretty RefTrue = "true"
+  pretty (RefAnd a b) = pretty a ++ " and " ++ pretty b
   pretty (LEQ n) = "ν ≤ " ++ show n
   pretty (GEQ n) = "ν ≥ " ++ show n
 
 instance ValDomain StdVD where
   data DVal StdVD = IntConst Int | StrConst String deriving (Show,Eq,Ord)
-  dValType (IntConst n) = (IntT, RefAnd 
-                                   (RefAtom $ GEQ n) 
-                                   (RefAtom $ LEQ n))
+  dValType (IntConst n) = (IntT, RefAnd (GEQ n) (LEQ n))
   dValType (StrConst _) = (StrT, RefTrue)
 
 instance Pretty (DVal StdVD) where
@@ -113,24 +119,27 @@ instance Pretty (DVal StdVD) where
   pretty (StrConst s) = show s
 
 intT :: ValT StdVD
-intT = DsT IntT RefTrue
+intT = (DsT IntT)
 
-intTLe :: Int -> ValT StdVD
-intTLe n = DsT IntT (RefAtom $ LEQ n)
+intTLe :: Int -> ValTR StdVD
+intTLe n = ValTR (DsT IntT) (LEQ n)
 
-intTGe :: Int -> ValT StdVD
-intTGe n = DsT IntT (RefAtom $ GEQ n)
+intTGe :: Int -> ValTR StdVD
+intTGe n = ValTR (DsT IntT) (GEQ n)
 
-intTR :: Int -> Int -> ValT StdVD
-intTR low high = DsT IntT (RefAnd 
-                             (RefAtom $ GEQ low) 
-                             (RefAtom $ LEQ high))
+intTR :: Int -> Int -> ValTR StdVD
+intTR low high = ValTR (DsT IntT) (RefAnd (GEQ low) (LEQ high))
+
+-- intTR :: Int -> Int -> ValT StdVD
+-- intTR low high = DsT IntT (RefAnd 
+--                              (RefAtom $ GEQ low) 
+--                              (RefAtom $ LEQ high))
 
 intV :: (CompDomain e StdVD) => Int -> Val e StdVD
 intV = DsV . IntConst
 
 stringT :: ValT StdVD
-stringT = DsT StrT RefTrue
+stringT = (DsT StrT) 
 
 stringV :: (CompDomain e StdVD) => String -> Val e StdVD
 stringV = DsV . StrConst
@@ -150,75 +159,77 @@ data StdCD =
   | IntFromStr
   deriving (Show,Eq,Ord)
 
-intDEffSum :: Map SumId (ValT StdVD)
-intDEffSum = M.fromList
-  [(SumId "Add", intT)
-  ,(SumId "Sub", intT)]
+-- intDEffSum :: Map SumId (ValT StdVD)
+-- intDEffSum = M.fromList
+--   [(SumId "Add", intT)
+--   ,(SumId "Sub", intT)]
 
-intModT :: ValT StdVD
-intModT = SumT intDEffSum
+-- intModT :: ValT StdVD
+-- intModT = SumT intDEffSum
 
-intDOrdSum :: Map SumId (ValT StdVD)
-intDOrdSum = M.fromList
-  [(SumId "LEQ", UnitT)
-  ,(SumId "GEQ", UnitT)]
+-- intDOrdSum :: Map SumId (ValT StdVD)
+-- intDOrdSum = M.fromList
+--   [(SumId "LEQ", UnitT)
+--   ,(SumId "GEQ", UnitT)]
 
-intOrdT :: ValT StdVD
-intOrdT = SumT intDOrdSum
+-- intOrdT :: ValT StdVD
+-- intOrdT = SumT intDOrdSum
 
 lsPretty :: (Pretty a) => [a] -> String
 lsPretty [] = ""
 lsPretty (a:as) = pretty a ++ "," ++ lsPretty as
 
 instance CompDomain StdCD StdVD where
-  dCompSig = \case
-    StrCat -> ([stringT,stringT],stringT)
-    StrCmp -> ([stringT,stringT],boolT)
-    StrGet -> ([],stringT)
-    StrPut -> ([stringT],UnitT)
+  -- dCompSig = \case
+  --   StrCat -> ([stringT,stringT],stringT)
+  --   StrCmp -> ([stringT,stringT],boolT)
+  --   StrGet -> ([],stringT)
+  --   StrPut -> ([stringT],UnitT)
 
-    StrFromInt -> ([intT],stringT)
-    IntFromStr -> ([stringT], optionT intT)
+  --   StrFromInt -> ([intT],stringT)
+  --   IntFromStr -> ([stringT], optionT intT)
 
-    IntMod -> ([SumT intDEffSum, intT], intT)
-    IntTest -> ([SumT intDOrdSum, intT, intT], boolT)
-    IntQuery -> ([SumT intDOrdSum], intT)
-    IntIssue -> ([SumT intDEffSum], UnitT)
-    IntProduce -> ([SumT intDEffSum], UnitT)
-    IntConsume -> ([SumT intDEffSum], UnitT)
+  --   IntMod -> ([SumT intDEffSum, intT], intT)
+  --   IntTest -> ([SumT intDOrdSum, intT, intT], boolT)
+  --   IntQuery -> ([SumT intDOrdSum], intT)
+  --   IntIssue -> ([SumT intDEffSum], UnitT)
+  --   IntProduce -> ([SumT intDEffSum], UnitT)
+  --   IntConsume -> ([SumT intDEffSum], UnitT)
 
   dCompPretty IntMod vs = "mod " ++ lsPretty vs
   dCompPretty IntTest vs = "test " ++ lsPretty vs
   dCompPretty _ _ = "[thing]"
 
-addV :: (CompDomain e StdVD) => Val e StdVD -> Val e StdVD
-addV = Sum intDEffSum (SumId "Add")
-subV :: (CompDomain e StdVD) => Val e StdVD -> Val e StdVD
-subV = Sum intDEffSum (SumId "Sub")
+-- addV :: (CompDomain e StdVD) => Val e StdVD -> Val e StdVD
+-- addV = Sum intDEffSum (SumId "Add")
+-- subV :: (CompDomain e StdVD) => Val e StdVD -> Val e StdVD
+-- subV = Sum intDEffSum (SumId "Sub")
 
-leqV :: (CompDomain e StdVD) => Val e StdVD
-leqV = Sum intDOrdSum (SumId "LEQ") Unit
-geqV :: (CompDomain e StdVD) => Val e StdVD
-geqV = Sum intDOrdSum (SumId "GEQ") Unit
+-- leqV :: (CompDomain e StdVD) => Val e StdVD
+-- leqV = Sum intDOrdSum (SumId "LEQ") Unit
+-- geqV :: (CompDomain e StdVD) => Val e StdVD
+-- geqV = Sum intDOrdSum (SumId "GEQ") Unit
 
-someS = SumId "Some"
-noneS = SumId "None"
+-- someS = SumId "Some"
+-- noneS = SumId "None"
 
-optSum :: (ValDomain d) => ValT d -> Map SumId (ValT d)
-optSum vt = M.fromList [(someS, vt), (noneS, UnitT)]
+-- optSum :: (ValDomain d) => ValT d -> Map SumId (ValT d)
+-- optSum vt = M.fromList [(someS, vt), (noneS, UnitT)]
 
-optionT :: (ValDomain d) => ValT d -> ValT d
-optionT = SumT . optSum
+-- optionT :: (ValDomain d) => ValT d -> ValT d
+-- optionT = SumT . optSum
 
-someV :: (CompDomain e d) => ValT d -> Val e d -> Val e d
-someV vt v = Sum (optSum vt) someS v
+-- someV :: (CompDomain e d) => ValT d -> Val e d -> Val e d
+-- someV vt v = Sum (optSum vt) someS v
 
-noneV :: (CompDomain e d) => ValT d -> Val e d
-noneV vt = Sum (optSum vt) noneS Unit
+-- noneV :: (CompDomain e d) => ValT d -> Val e d
+-- noneV vt = Sum (optSum vt) noneS Unit
 
 type Val' = Val StdCD StdVD
 
 type ValT' = ValT StdVD
+
+type ValTR' = ValTR StdVD
 
 type Comp' = Comp StdCD StdVD
 

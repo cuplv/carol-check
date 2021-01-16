@@ -21,7 +21,7 @@ import Language.Carol.AST.Types
 class (RefDomain d, Eq (DVal d), Ord (DVal d))
     => ValDomain d where
   data DVal d
-  dValType :: DVal d -> (d, Refinement d)
+  dValType :: DVal d -> (d, DRef d)
 
 class (ValDomain d) => CompDomain e d where
   dCompSig :: e -> ([ValT d], ValT d)
@@ -38,11 +38,11 @@ instance Pretty VarId where
 data (CompDomain e d) => Val e d =
     Var VarId
   | Thunk (Comp e d)
-  | Sum (Map SumId (ValT d)) SumId (Val e d)
+  | Sum (Map SumId (ValTR d)) SumId (Val e d)
   | Unit
   | Pair (Val e d) (Val e d)
   | DsV (DVal d)
-  | Anno (Val e d) (ValT d)
+  | Anno (Val e d) (ValTR d)
   deriving (Eq,Ord)
 
 instance (Pretty d, Pretty (DRef d), CompDomain e d) 

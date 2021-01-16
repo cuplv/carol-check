@@ -23,7 +23,7 @@ import qualified Data.Map as M
 
 checkV :: (CompDomain e d)
   => Val e d
-  -> ValT d
+  -> ValTR d
   -> Context d
   -> TErr d (Context d)
 checkV v vt g = do
@@ -33,7 +33,7 @@ checkV v vt g = do
 synthV :: (CompDomain e d)
   => Val e d
   -> Context d
-  -> TErr d (ValT d, Context d)
+  -> TErr d (ValTR d, Context d)
 synthV v g = case v of
   Var x -> case isBound x g of
     Just t -> return (t,g)
@@ -41,16 +41,16 @@ synthV v g = case v of
                               ++ show x ++ "\"")
   Thunk m -> undefined
   Sum sc i v' -> case M.lookup i sc of
-    Just vt -> checkV v' vt g >>= \g' -> return (SumT sc, g')
+    Just vt -> checkV v' vt g >>= \g' -> return (fromBase (SumT sc), g')
     Nothing -> terr  $ TOther ("Sum, " ++ show i
                                ++ " not in alts.")
-  Unit -> return (UnitT, g)
+  Unit -> return (fromBase UnitT, g)
   Pair v1 v2 -> do
     (vt1,g1) <- synthV v1 g
     (vt2,g2) <- synthV v2 g1
-    return (PairT vt1 vt2, g2)
+    return (fromBase $ PairT vt1 vt2, g2)
   DsV dv -> let (d,r) = dValType dv
-            in return (DsT d r, g)
+            in return (ValTR (DsT d) r, g)
   Anno v1 vt -> do
     g1 <- checkV v1 vt g
     return (vt, g1)

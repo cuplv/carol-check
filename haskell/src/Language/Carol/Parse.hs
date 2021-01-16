@@ -35,12 +35,13 @@ funTP = do
   mt <- mtypeP
   return (FunT vt mt)
 
-vtypeP :: Parsec String s (ValT')
+vtypeP :: Parsec String s (ValTR')
 vtypeP = 
-  unitTP
-  <|> intTP
-  <|> boolTP
-  <|> pairTP
+  fromBase <$>
+  (unitTP
+   <|> intTP
+   <|> boolTP
+   <|> pairTP)
 
 unitTP = string "{}" >> return UnitT
 
@@ -229,10 +230,10 @@ valP = do
          ,pairP
          ,trueP
          ,falseP
-         ,addP
-         ,subP
-         ,leqP
-         ,geqP
+         -- ,addP
+         -- ,subP
+         -- ,leqP
+         -- ,geqP
          ,parensP valP]
   spaces
   mvt <- optionMaybe (try annoEndP)
@@ -272,14 +273,14 @@ trueP = string "True" >> return (boolV True)
 falseP :: Parsec String s (Val')
 falseP = string "False" >> return (boolV False)
 
-addP :: Parsec String s (Val')
-addP = addV <$> (char '+' >> natP)
+-- addP :: Parsec String s (Val')
+-- addP = addV <$> (char '+' >> natP)
 
-subP :: Parsec String s (Val')
-subP = subV <$> (char '-' >> natP)
+-- subP :: Parsec String s (Val')
+-- subP = subV <$> (char '-' >> natP)
 
-leqP :: Parsec String s (Val')
-leqP = string "LEQ" >> return leqV
+-- leqP :: Parsec String s (Val')
+-- leqP = string "LEQ" >> return leqV
 
-geqP :: Parsec String s (Val')
-geqP = string "GEQ" >> return geqV
+-- geqP :: Parsec String s (Val')
+-- geqP = string "GEQ" >> return geqV

@@ -9,7 +9,7 @@ import Language.Carol.TypeCheck.Error
 
 instLV :: (RefDomain d)
   => ExIdV
-  -> ValT d
+  -> ValTR d
   -> Context d
   -> TErr d (Context d)
 instLV a vt g = case vt of

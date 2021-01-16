@@ -12,8 +12,8 @@ import Language.Carol.TypeCheck.Error
 -- | Check that the first value type a subtype of the second value
 -- type.
 subCheckV :: (RefDomain d)
-  => ValT d
-  -> ValT d
+  => ValTR d
+  -> ValTR d
   -> Context d
   -> TErr d (Context d)
 subCheckV vt1 vt2 g = case (vt1,vt2) of
@@ -23,18 +23,18 @@ subCheckV vt1 vt2 g = case (vt1,vt2) of
   (vt1, ExVT a) -> bindExV a vt1 g
   -- Unit, etc.
   _ | vt1 == vt2 -> return g
-  (PairT xt1 yt1, PairT xt2 yt2) -> do
-    g1 <- subCheckV xt1 xt2 g
-    g2 <- subCheckV yt1 yt2 g1
-    return g2
-  (DsT t1 r1, DsT t2 r2) | t1 == t2 -> do
-    result <- liftIO . isTheorem $ do
-      nu <- forall "nu"
-      return $ rpred r1 nu .=> rpred r2 nu
-    if result
-       then return g
-       else terr $ TMismatch vt1 vt2
-  _ -> terr $ TMismatch vt1 vt2
+  -- (PairT xt1 yt1, PairT xt2 yt2) -> do
+  --   g1 <- subCheckV xt1 xt2 g
+  --   g2 <- subCheckV yt1 yt2 g1
+  --   return g2
+  -- (DsT t1 r1, DsT t2 r2) | t1 == t2 -> do
+  --   result <- liftIO . isTheorem $ do
+  --     nu <- forall "nu"
+  --     return $ rpred r1 nu .=> rpred r2 nu
+  --   if result
+  --      then return g
+  --      else terr $ TMismatch vt1 vt2
+  -- _ -> terr $ TMismatch vt1 vt2
 
 -- | Check that the first computation type a subtype of the second
 -- computation type.

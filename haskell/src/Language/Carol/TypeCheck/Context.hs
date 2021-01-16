@@ -29,7 +29,7 @@ import qualified Data.Map as M
 
 -- | Existential variable declaration/binding for value types.
 data (RefDomain d) => ExV d =
-  ExV ExIdV (Maybe (ValT d))
+  ExV ExIdV (Maybe (ValTR d))
   deriving (Eq,Ord)
 
 instance (RefDomain d, Pretty d, Pretty (DRef d)) => Pretty (ExV d) where
@@ -47,7 +47,7 @@ data (RefDomain d) => Context d =
     Empty
   | ExValT (ExV d) (Context d)
   | ExCompT (ExC d) (Context d)
-  | VarBind VarId (ValT d) (Context d)
+  | VarBind VarId (ValTR d) (Context d)
   deriving (Eq,Ord)
 
 instance (RefDomain d, Pretty d, Pretty (DRef d)) => Pretty (Context d) where
@@ -62,7 +62,7 @@ instance (RefDomain d, Pretty d, Pretty (DRef d)) => Pretty (Context d) where
 emptyContext :: Context d
 emptyContext = Empty
 
-isBound :: (RefDomain d) => VarId -> Context d -> Maybe (ValT d)
+isBound :: (RefDomain d) => VarId -> Context d -> Maybe (ValTR d)
 isBound x = \case
   Empty -> Nothing
   ExValT _ g' -> isBound x g'
@@ -71,7 +71,7 @@ isBound x = \case
                        then Just t
                        else isBound x g'
 
-data ExStatus d = ExNonExist | ExUnBound | ExBound (ValT d)
+data ExStatus d = ExNonExist | ExUnBound | ExBound (ValTR d)
 
 data ExStatusC d = ExNonExistC | ExUnBoundC | ExBoundC (CompT d)
 
@@ -115,10 +115,10 @@ newExC :: (RefDomain d) => Context d -> (Context d, ExIdC)
 newExC g = let b = ExIdC (nextEx g)
            in (ExCompT (ExC b Nothing) g, b)
 
-bindExV :: (RefDomain d) => ExIdV -> ValT d -> Context d -> TErr d (Context d)
+bindExV :: (RefDomain d) => ExIdV -> ValTR d -> Context d -> TErr d (Context d)
 bindExV a vt g = bindExVR g a vt g
 
-bindExVR :: (RefDomain d) => Context d -> ExIdV -> ValT d -> Context d -> TErr d (Context d)
+bindExVR :: (RefDomain d) => Context d -> ExIdV -> ValTR d -> Context d -> TErr d (Context d)
 bindExVR g0 a vt = \case
   Empty -> terr $ TOther "Context cannot bind; missing exvar."
   ExValT (ExV a1    Nothing) g' | a == a1 -> 
@@ -147,7 +147,7 @@ bindExCR g0 b mt = \case
   ExCompT    e g' -> ExCompT    e <$> bindExCR g0 b mt g'
   VarBind x t1 g' -> VarBind x t1 <$> bindExCR g0 b mt g'
 
-varBind :: (RefDomain d) => VarId -> ValT d -> Context d -> Context d
+varBind :: (RefDomain d) => VarId -> ValTR d -> Context d -> Context d
 varBind = VarBind
 
 trimToVar :: (RefDomain d) => VarId -> Context d -> TErr d (Context d)
@@ -159,20 +159,25 @@ trimToVar x = \case
                        then return g'
                        else trimToVar x g'
 
-substV :: (RefDomain d) => Context d -> ValT d -> TErr d (ValT d)
+substV :: (RefDomain d) => Context d -> ValTR d -> TErr d (ValTR d)
 substV g = \case
-  ThunkT mt -> ThunkT <$> substC g mt
-  SumT ss -> do
-    let sl = M.toList ss
-    sl' <- mapM (\(i,vt) -> (,) <$> return i <*> substV g vt) sl
-    return $ SumT (M.fromList sl')
-  UnitT -> return UnitT
-  PairT vt1 vt2 -> PairT <$> substV g vt1 <*> substV g vt2
-  DsT d r -> return (DsT d r)
   ExVT a -> case existStatusV a g of
     ExBound t -> substV g t
     ExUnBound -> return $ ExVT a
     ExNonExist -> terr $ TOther "SubstV failed; missing exvar."
+  -- Possibly, this is where we introduce "v == x" refinements as
+  -- solved exvars are substituted in?
+  ValTR vt r -> case vt of
+    ThunkT mt -> do vt <- ThunkT <$> substC g mt
+                    return (ValTR vt r)
+    SumT ss -> do
+      let sl = M.toList ss
+      sl' <- mapM (\(i,vt) -> (,) <$> return i <*> substV g vt) sl
+      return $ ValTR (SumT (M.fromList sl')) r
+    UnitT -> return $ ValTR UnitT r
+    PairT vt1 vt2 -> do vt <- PairT <$> substV g vt1 <*> substV g vt2
+                        return $ ValTR vt r
+    DsT d -> return (ValTR (DsT d) r)
 
 substC :: (RefDomain d) => Context d -> CompT d -> TErr d (CompT d)
 substC g = \case

@@ -18,7 +18,7 @@ terr :: (RefDomain d) => TypeError d -> TErr d a
 terr = throwError
 
 data TypeError d =
-    TMismatch (ValT d) (ValT d)
+    TMismatch (ValTR d) (ValTR d)
   | TOther String
   deriving (Eq,Ord)
 

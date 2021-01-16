@@ -6,6 +6,8 @@
 
 module Language.Carol.AST.Types
   ( ValT (..)
+  , ValTR (..)
+  , fromBase
   , boolT
   , boolSchema
   , trueS
@@ -15,10 +17,9 @@ module Language.Carol.AST.Types
   , ProdId (..)
   , ExIdV
   , ExIdC
-  , baseTypeV
-  , baseTypeC
+  -- , baseTypeV
+  -- , baseTypeC
   , RefDomain (..)
-  , Refinement (..)
   ) where
 
 import Language.Carol.AST.PrettyPrint
@@ -32,14 +33,29 @@ newtype SumId = SumId String deriving (Show,Eq,Ord)
 
 newtype ProdId = ProdId String deriving (Show,Eq,Ord)
 
-data (RefDomain d) => ValT d =
-    ThunkT (CompT d)
-  | SumT (Map SumId (ValT d))
-  | UnitT
-  | PairT (ValT d) (ValT d)
-  | DsT d (Refinement d)
+data (RefDomain d) => ValTR d = 
+    ValTR (ValT d) (DRef d)
   | ExVT ExIdV
   deriving (Eq,Ord)
+
+deriving instance (Show d, RefDomain d, Show (DRef d))
+    => Show (ValTR d)
+
+instance (RefDomain d, Pretty d, Pretty (DRef d))
+    => Pretty (ValTR d) where
+  pretty (ValTR t r) = "{ ν:" ++ pretty t ++ " | " ++ pretty r ++ " }"
+  pretty (ExVT e) = pretty e
+
+data (RefDomain d) => ValT d =
+    ThunkT (CompT d)
+  | SumT (Map SumId (ValTR d))
+  | UnitT
+  | PairT (ValTR d) (ValTR d)
+  | DsT d
+  deriving (Eq,Ord)
+
+fromBase :: (RefDomain d) => ValT d -> ValTR d
+fromBase t = ValTR t refEmpty
 
 deriving instance (Show d, RefDomain d, Show (DRef d))
     => Show (ValT d)
@@ -51,31 +67,33 @@ instance (RefDomain d, Pretty d, Pretty (DRef d))
     SumT mp -> "Σ(" ++ "..." ++ ")"
     UnitT -> "{}"
     PairT vt1 vt2 -> "(" ++ pretty vt1 ++ ", " ++ pretty vt2 ++ ")"
-    DsT t RefTrue -> pretty t
-    DsT t r -> "{ ν:" ++ pretty t ++ " | " ++ pretty r ++ " }"
-    ExVT e -> pretty e
+    -- DsT t RefTrue -> pretty t
+    -- DsT t r -> "{ ν:" ++ pretty t ++ " | " ++ pretty r ++ " }"
+    -- ExVT e -> pretty e
 
-baseTypeV :: (RefDomain d) => ValT d -> ValT d
-baseTypeV = \case
-  ThunkT mt -> ThunkT $ baseTypeC mt
-  SumT mp -> SumT $ M.map baseTypeV mp
-  UnitT -> UnitT
-  PairT vt1 vt2 -> PairT (baseTypeV vt1) (baseTypeV vt2)
-  DsT t r -> DsT t RefTrue -- remove refinement
-  ExVT e -> ExVT e
+-- baseTypeV :: (RefDomain d) => ValT d -> ValT d
+-- baseTypeV = \case
+--   ThunkT mt -> ThunkT $ baseTypeC mt
+--   SumT mp -> SumT $ M.map baseTypeV mp
+--   UnitT -> UnitT
+--   PairT vt1 vt2 -> PairT (baseTypeV vt1) (baseTypeV vt2)
+--   DsT t r -> DsT t RefTrue -- remove refinement
+--   ExVT e -> ExVT e
 
 trueS = SumId "True"
 falseS = SumId "False"
 
-boolSchema = M.fromList [(trueS,UnitT), (falseS,UnitT)]
+boolSchema :: (RefDomain d) => Map SumId (ValTR d)
+boolSchema = M.fromList [(trueS,fromBase UnitT)
+                        ,(falseS,fromBase UnitT)]
 
 boolT :: (RefDomain d) => ValT d
 boolT = SumT boolSchema
 
 data CompT d =
-    RetT (ValT d)
+    RetT (ValTR d)
   | ProdT (Map ProdId (CompT d))
-  | FunT (ValT d) (CompT d)
+  | FunT (ValTR d) (CompT d)
   | ExCT ExIdC
   deriving (Eq,Ord)
 
@@ -91,9 +109,9 @@ instance (RefDomain d, Pretty d, Pretty (DRef d))
     ExCT e -> pretty e
 
 
-baseTypeC :: (RefDomain d) => CompT d -> CompT d
-baseTypeC = \case
-  RetT vt -> RetT $ baseTypeV vt
-  ProdT mp -> ProdT $ M.map baseTypeC mp
-  FunT vt mt -> FunT (baseTypeV vt) (baseTypeC mt)
-  ExCT e -> ExCT e
+-- baseTypeC :: (RefDomain d) => CompT d -> CompT d
+-- baseTypeC = \case
+--   RetT vt -> RetT $ baseTypeV vt
+--   ProdT mp -> ProdT $ M.map baseTypeC mp
+--   FunT vt mt -> FunT (baseTypeV vt) (baseTypeC mt)
+--   ExCT e -> ExCT e
