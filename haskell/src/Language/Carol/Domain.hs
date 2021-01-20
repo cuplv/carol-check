@@ -4,7 +4,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Language.Carol.AST.Domain
+module Language.Carol.Domain
   ( EmptyVD
   , StdVD (..)
   , DVal (..)
@@ -35,6 +35,7 @@ module Language.Carol.AST.Domain
 import Language.Carol.AST.PrettyPrint
 import Language.Carol.AST.Terms
 import Language.Carol.AST.Types
+import Language.Carol.TypeCheck.Solve
 
 import Data.Map (Map)
 import qualified Data.Map as M
@@ -52,17 +53,14 @@ instance Pretty EmptyVD where
   pretty = undefined
 
 instance RefDomain EmptyVD where
-  data DRef EmptyVD
-  -- refConstraint = undefined
+  data DRef EmptyVD = EmptyVD deriving (Eq,Ord,Show)
+  refEmpty = EmptyVD
 
-instance Eq (DRef EmptyVD) where
-  a == b = undefined
-instance Ord (DRef EmptyVD) where
-  a <= b = undefined
-instance Show (DRef EmptyVD) where
-  show = undefined
 instance Pretty (DRef EmptyVD) where
-  pretty = undefined
+  pretty = show
+
+instance RefSolve EmptyVD where
+  subRef _ _ g = return g
 
 instance ValDomain EmptyVD where
   data DVal EmptyVD

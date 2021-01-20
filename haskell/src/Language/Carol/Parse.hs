@@ -13,6 +13,7 @@ module Language.Carol.Parse
   ) where
 
 import Language.Carol.AST
+import Language.Carol.Domain
 
 import Text.Parsec
 

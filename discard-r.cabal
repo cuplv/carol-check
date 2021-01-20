@@ -16,12 +16,13 @@ library
   other-modules:       Language.Carol.AST.PrettyPrint
                      , Language.Carol.AST.Terms
                      , Language.Carol.AST.Types
-                     , Language.Carol.AST.Domain
                      , Language.Carol.AST.Refinement
                      , Language.Carol.AST.Types.ExVars
+                     , Language.Carol.Domain
                      , Language.Carol.TypeCheck.Context
                      , Language.Carol.TypeCheck.Error
                      , Language.Carol.TypeCheck.Inst
+                     , Language.Carol.TypeCheck.Solve
                      , Language.Carol.TypeCheck.SubCheck
   -- other-extensions:
   build-depends:       base >=4.13 && <4.15

@@ -8,10 +8,11 @@ import Language.Carol.AST.Types
 import Language.Carol.TypeCheck.Context
 import Language.Carol.TypeCheck.Inst
 import Language.Carol.TypeCheck.Error
+import Language.Carol.TypeCheck.Solve
 
 -- | Check that the first value type a subtype of the second value
 -- type.
-subCheckV :: (RefDomain d)
+subCheckV :: (RefSolve d)
   => ValTR d
   -> ValTR d
   -> Context d
@@ -22,7 +23,8 @@ subCheckV vt1 vt2 g = case (vt1,vt2) of
   -- InstantiateR+InstRSolve
   (vt1, ExVT a) -> bindExV a vt1 g
   -- Unit, etc.
-  _ | vt1 == vt2 -> return g
+  (ValTR t1 r1, ValTR t2 r2) -> subRef (t1,r1) (t2,r2) g
+  -- _ | vt1 == vt2 -> return g
   -- (PairT xt1 yt1, PairT xt2 yt2) -> do
   --   g1 <- subCheckV xt1 xt2 g
   --   g2 <- subCheckV yt1 yt2 g1
@@ -38,7 +40,7 @@ subCheckV vt1 vt2 g = case (vt1,vt2) of
 
 -- | Check that the first computation type a subtype of the second
 -- computation type.
-subCheckC :: (RefDomain d)
+subCheckC :: (RefSolve d)
   => CompT d
   -> CompT d
   -> Context d

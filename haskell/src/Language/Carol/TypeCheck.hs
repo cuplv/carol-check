@@ -16,12 +16,13 @@ import Control.Monad (foldM)
 import Language.Carol.AST
 import Language.Carol.TypeCheck.Context
 import Language.Carol.TypeCheck.Error
+import Language.Carol.TypeCheck.Solve
 import Language.Carol.TypeCheck.SubCheck
 
 import Data.Map (Map)
 import qualified Data.Map as M
 
-checkV :: (CompDomain e d)
+checkV :: (CompDomain e d, RefSolve d)
   => Val e d
   -> ValTR d
   -> Context d
@@ -30,7 +31,7 @@ checkV v vt g = do
   (vt1,g1) <- synthV v g
   subCheckV vt1 vt g1
 
-synthV :: (CompDomain e d)
+synthV :: (CompDomain e d, RefSolve d)
   => Val e d
   -> Context d
   -> TErr d (ValTR d, Context d)
@@ -55,7 +56,7 @@ synthV v g = case v of
     g1 <- checkV v1 vt g
     return (vt, g1)
 
-checkC :: (CompDomain e d)
+checkC :: (CompDomain e d, RefSolve d)
   => Comp e d
   -> CompT d
   -> Context d
@@ -67,7 +68,7 @@ checkC m mt2 g = do
   g2 <- subCheckC mt1s mt2s g1
   return g2
 
-synthC :: (CompDomain e d)
+synthC :: (CompDomain e d, RefSolve d)
   => Comp e d
   -> Context d
   -> TErr d (CompT d, Context d)
@@ -117,7 +118,7 @@ synthC m g = case m of
     g1 <- checkC m mt g
     return (mt,g1)
 
-appSynth :: (CompDomain e d) 
+appSynth :: (CompDomain e d, RefSolve d)
          => CompT d 
          -> Val e d 
          -> Context d 
