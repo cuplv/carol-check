@@ -24,8 +24,8 @@ class (RefDomain d, Eq (DVal d), Ord (DVal d))
   dValType :: DVal d -> (d, DRef d)
 
 class (ValDomain d) => CompDomain e d where
-  dCompSig :: e -> ([ValT d], ValT d)
-  dCompPretty :: e -> [Val e d] -> String
+  dCompSig :: e -> ValTR d -> Maybe (ValTR d)
+  dCompPretty :: e -> Val e d -> String
 
 newtype VarId = VarId String deriving (Eq,Ord)
 
@@ -74,7 +74,7 @@ data (CompDomain e d) => Comp e d =
   | Pms (Val e d) (Map SumId (Abst e d))
   | Proj ProdId (Comp e d)
   | Ap (Val e d) (Comp e d)
-  | DsC e [Val e d] (Maybe VarId, Comp e d)
+  | DsC e (Val e d) (Maybe VarId, Comp e d)
   | AnnoC (Comp e d) (CompT d)
   deriving (Eq,Ord)
 

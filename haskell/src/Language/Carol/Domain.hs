@@ -13,18 +13,7 @@ module Language.Carol.Domain
   , intTGe
   , intTR
   , intV
-  , stringT
-  , stringV
   , StdCD (..)
-  -- , intModT
-  -- , intOrdT
-  -- , addV
-  -- , subV
-  -- , leqV
-  -- , geqV
-  -- , optionT
-  -- , someV
-  -- , noneV
   , Val'
   , ValT'
   , ValTR'
@@ -81,11 +70,11 @@ instance (ValDomain d) => CompDomain EmptyCD d where
   dCompSig = undefined
   dCompPretty = undefined
 
-data StdVD = IntT | StrT deriving (Eq,Ord)
+
+data StdVD = IntT deriving (Eq,Ord)
 
 instance Show StdVD where
   show IntT = "Int"
-  show StrT = "String"
 
 instance Pretty StdVD where
   pretty = show
@@ -97,9 +86,6 @@ instance RefDomain StdVD where
     | LEQ Int 
     | GEQ Int 
     deriving (Show,Eq,Ord)
-  -- refConstraint = \case
-  --   LEQ i -> \v -> v .<= literal (fromIntegral i)
-  --   GEQ i -> \v -> v .>= literal (fromIntegral i)
 
 instance Pretty (DRef StdVD) where
   pretty RefTrue = "true"
@@ -110,11 +96,9 @@ instance Pretty (DRef StdVD) where
 instance ValDomain StdVD where
   data DVal StdVD = IntConst Int | StrConst String deriving (Show,Eq,Ord)
   dValType (IntConst n) = (IntT, RefAnd (GEQ n) (LEQ n))
-  dValType (StrConst _) = (StrT, RefTrue)
 
 instance Pretty (DVal StdVD) where
   pretty (IntConst n) = show n
-  pretty (StrConst s) = show s
 
 intT :: ValT StdVD
 intT = (DsT IntT)
@@ -128,50 +112,13 @@ intTGe n = ValTR (DsT IntT) (GEQ n)
 intTR :: Int -> Int -> ValTR StdVD
 intTR low high = ValTR (DsT IntT) (RefAnd (GEQ low) (LEQ high))
 
--- intTR :: Int -> Int -> ValT StdVD
--- intTR low high = DsT IntT (RefAnd 
---                              (RefAtom $ GEQ low) 
---                              (RefAtom $ LEQ high))
-
 intV :: (CompDomain e StdVD) => Int -> Val e StdVD
 intV = DsV . IntConst
 
-stringT :: ValT StdVD
-stringT = (DsT StrT) 
-
-stringV :: (CompDomain e StdVD) => String -> Val e StdVD
-stringV = DsV . StrConst
-
 data StdCD =
-    IntMod
-  | IntTest
-  | IntQuery
-  | IntIssue
-  | IntProduce
-  | IntConsume
-  | StrCat
-  | StrCmp
-  | StrGet
-  | StrPut
-  | StrFromInt
-  | IntFromStr
+    IntAdd
+  | IntSub
   deriving (Show,Eq,Ord)
-
--- intDEffSum :: Map SumId (ValT StdVD)
--- intDEffSum = M.fromList
---   [(SumId "Add", intT)
---   ,(SumId "Sub", intT)]
-
--- intModT :: ValT StdVD
--- intModT = SumT intDEffSum
-
--- intDOrdSum :: Map SumId (ValT StdVD)
--- intDOrdSum = M.fromList
---   [(SumId "LEQ", UnitT)
---   ,(SumId "GEQ", UnitT)]
-
--- intOrdT :: ValT StdVD
--- intOrdT = SumT intDOrdSum
 
 lsPretty :: (Pretty a) => [a] -> String
 lsPretty [] = ""
@@ -194,9 +141,9 @@ instance CompDomain StdCD StdVD where
   --   IntProduce -> ([SumT intDEffSum], UnitT)
   --   IntConsume -> ([SumT intDEffSum], UnitT)
 
-  dCompPretty IntMod vs = "mod " ++ lsPretty vs
-  dCompPretty IntTest vs = "test " ++ lsPretty vs
-  dCompPretty _ _ = "[thing]"
+  -- dCompPretty IntMod vs = "mod " ++ lsPretty vs
+  -- dCompPretty IntTest vs = "test " ++ lsPretty vs
+  -- dCompPretty _ _ = "[thing]"
 
 -- addV :: (CompDomain e StdVD) => Val e StdVD -> Val e StdVD
 -- addV = Sum intDEffSum (SumId "Add")

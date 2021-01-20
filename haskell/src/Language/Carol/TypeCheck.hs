@@ -108,7 +108,10 @@ synthC m g = case m of
           FunT vt mt2 -> do
             -- Use domain logic to produce input type from vt (the output
             -- type) and new comp-refinement for mt2
-            undefined
+            case dCompSig d vt of
+              Just invt -> do g2 <- checkV vs invt g1
+                              return (mt2,g2)
+              Nothing -> terr $ TOther "Comp got wrong input type."
           _ -> terr $ TOther "Fun did not typecheck as FunT?"
       Nothing -> do
         synthC m' g
