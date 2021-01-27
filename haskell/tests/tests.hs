@@ -139,6 +139,20 @@ unitTests = testGroup "Unit tests"
                                          (RetT (PairT (intTR 4 8) UnitT))
         ,t "FunType2"
            misses $ "|x| return x" |:- FunT (intTR 0 9) (RetT (intTR 4 8))
+        ,testCase "FunType3"
+         . checks
+         $ let t = fori "ax"
+                        intSort
+                        (FunT (intTEq (IVarId "ax"))
+                              (RetT (PairT (intTEq (IVarId "ax")) UnitT)))
+           in "|x| return (x,{=})" |:- t
+        ,testCase "FunType4"
+         . misses
+         $ let t = fori "ax"
+                        intSort
+                        (FunT (intTEq (IVarId "ax"))
+                              (RetT (PairT (intTEq (IVarId "ax")) UnitT)))
+           in "|x| return (5,{=})" |:- t
         ]
   ]
 

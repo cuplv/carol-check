@@ -10,9 +10,13 @@ module Language.Carol.AST.Domain
   , DVal (..)
   , intT
   , intTLe
+  , intTLe'
   , intTGe
+  , intTGe'
   , intTR
+  , intTEq
   , intV
+  , intSort
   , stringT
   , stringV
   , StdCD (..)
@@ -52,7 +56,9 @@ instance Pretty EmptyVD where
 
 instance RefDomain EmptyVD where
   data DRef EmptyVD
+  data ISort EmptyVD
   refConstraint = undefined
+  subVar = undefined
 
 instance Eq (DRef EmptyVD) where
   a == b = undefined
@@ -61,6 +67,15 @@ instance Ord (DRef EmptyVD) where
 instance Show (DRef EmptyVD) where
   show = undefined
 instance Pretty (DRef EmptyVD) where
+  pretty = undefined
+
+instance Eq (ISort EmptyVD) where
+  a == b = undefined
+instance Ord (ISort EmptyVD) where
+  a <= b = undefined
+instance Show (ISort EmptyVD) where
+  show = undefined
+instance Pretty (ISort EmptyVD) where
   pretty = undefined
 
 instance ValDomain EmptyVD where
@@ -91,21 +106,42 @@ instance Show StdVD where
 instance Pretty StdVD where
   pretty = show
 
+data IntObject = Literal Int | IntVar IVarId deriving (Show,Eq,Ord)
+
+instance Pretty IntObject where
+  pretty (Literal n) = show n
+  pretty (IntVar a) = pretty a
+
 instance RefDomain StdVD where
-  data DRef StdVD = LEQ Int | GEQ Int deriving (Show,Eq,Ord)
-  refConstraint = \case
-    LEQ i -> \v -> v .<= literal (fromIntegral i)
-    GEQ i -> \v -> v .>= literal (fromIntegral i)
+  data DRef StdVD = LEQ IntObject | GEQ IntObject deriving (Show,Eq,Ord)
+  data ISort StdVD = IntS deriving (Show,Eq,Ord)
+  refConstraint m = \case
+    LEQ (Literal i) -> \v -> v .<= literal (fromIntegral i)
+    LEQ (IntVar a) -> case M.lookup a m of
+                        Just x -> \v -> v .<= x
+    GEQ (Literal i) -> \v -> v .>= literal (fromIntegral i)
+    GEQ (IntVar a) -> case M.lookup a m of
+                        Just x -> \v -> v .>= x
+  subVar a (LEQ (IntVar a')) = if a == a'
+                               then LEQ (IntVar a)
+                               else LEQ (IntVar a')
+  subVar _ (LEQ n) = GEQ n
+  subVar a (GEQ (IntVar a')) = if a == a'
+                               then GEQ (IntVar a)
+                               else GEQ (IntVar a')
+  subVar _ (GEQ n) = GEQ n
+
+intSort = IntS
 
 instance Pretty (DRef StdVD) where
-  pretty (LEQ n) = "ν ≤ " ++ show n
-  pretty (GEQ n) = "ν ≥ " ++ show n
+  pretty (LEQ n) = "ν ≤ " ++ pretty n
+  pretty (GEQ n) = "ν ≥ " ++ pretty n
 
 instance ValDomain StdVD where
   data DVal StdVD = IntConst Int | StrConst String deriving (Show,Eq,Ord)
   dValType (IntConst n) = (IntT, RefAnd 
-                                   (RefAtom $ GEQ n) 
-                                   (RefAtom $ LEQ n))
+                                   (RefAtom $ GEQ (Literal n)) 
+                                   (RefAtom $ LEQ (Literal n)))
   dValType (StrConst _) = (StrT, RefTrue)
 
 instance Pretty (DVal StdVD) where
@@ -116,15 +152,25 @@ intT :: ValT StdVD
 intT = DsT IntT RefTrue
 
 intTLe :: Int -> ValT StdVD
-intTLe n = DsT IntT (RefAtom $ LEQ n)
+intTLe n = DsT IntT (RefAtom $ LEQ (Literal n))
+
+intTLe' :: IVarId -> ValT StdVD
+intTLe' a = DsT IntT (RefAtom $ LEQ (IntVar a))
 
 intTGe :: Int -> ValT StdVD
-intTGe n = DsT IntT (RefAtom $ GEQ n)
+intTGe n = DsT IntT (RefAtom $ GEQ (Literal n))
+
+intTGe' :: IVarId -> ValT StdVD
+intTGe' a = DsT IntT (RefAtom $ GEQ (IntVar a))
 
 intTR :: Int -> Int -> ValT StdVD
 intTR low high = DsT IntT (RefAnd 
-                             (RefAtom $ GEQ low) 
-                             (RefAtom $ LEQ high))
+                             (RefAtom $ GEQ (Literal low)) 
+                             (RefAtom $ LEQ (Literal high)))
+
+intTEq :: IVarId -> ValT StdVD
+intTEq a = DsT IntT (RefAnd (RefAtom $ GEQ (IntVar a))
+                            (RefAtom $ LEQ (IntVar a)))
 
 intV :: (CompDomain e StdVD) => Int -> Val e StdVD
 intV = DsV . IntConst

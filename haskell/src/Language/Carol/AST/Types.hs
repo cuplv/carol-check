@@ -19,6 +19,8 @@ module Language.Carol.AST.Types
   , baseTypeC
   , RefDomain (..)
   , Refinement (..)
+  , IVarId (..)
+  , fori
   ) where
 
 import Language.Carol.AST.PrettyPrint
@@ -41,7 +43,7 @@ data (RefDomain d) => ValT d =
   | ExVT ExIdV
   deriving (Eq,Ord)
 
-deriving instance (Show d, RefDomain d, Show (DRef d))
+deriving instance (Show d, RefDomain d, Show (DRef d), Show (ISort d))
     => Show (ValT d)
 
 instance (RefDomain d, Pretty d, Pretty (DRef d))
@@ -76,10 +78,15 @@ data CompT d =
     RetT (ValT d)
   | ProdT (Map ProdId (CompT d))
   | FunT (ValT d) (CompT d)
+  | Idx IVarId (ISort d) (CompT d)
   | ExCT ExIdC
-  deriving (Eq,Ord)
 
-deriving instance (Show d, RefDomain d, Show (DRef d))
+deriving instance (Eq d, RefDomain d, Eq (ISort d)) => Eq (CompT d)
+deriving instance (Ord d, RefDomain d, Ord (ISort d)) => Ord (CompT d)
+
+fori n s c = Idx (IVarId n) s c
+
+deriving instance (Show d, RefDomain d, Show (DRef d), Show (ISort d))
     => Show (CompT d)
 
 instance (RefDomain d, Pretty d, Pretty (DRef d))

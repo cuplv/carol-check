@@ -30,7 +30,8 @@ subCheckV vt1 vt2 g = case (vt1,vt2) of
   (DsT t1 r1, DsT t2 r2) | t1 == t2 -> do
     result <- liftIO . isTheorem $ do
       nu <- forall "nu"
-      return $ rpred r1 nu .=> rpred r2 nu
+      m <- quantifyContext g
+      return $ rpred m r1 nu .=> rpred m r2 nu
     if result
        then return g
        else terr $ TMismatch vt1 vt2
@@ -46,6 +47,8 @@ subCheckC :: (RefDomain d)
 subCheckC mt1 mt2 g = case (mt1,mt2) of
   -- Exvar
   (ExCT b1,ExCT b2) | b1 == b2 -> return g
+  -- Pi elim
+  (mt1,Idx a s mt2') -> subCheckC mt1 mt2' (idxBind a s g)
   -- { InstantiateL, InstantiateR+InstRSolve, Unit, etc. }
   (RetT vt1, RetT vt2) -> subCheckV vt1 vt2 g
   -- { <:--> }

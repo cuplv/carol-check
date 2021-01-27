@@ -11,10 +11,12 @@ module Language.Carol.TypeCheck.Context
   , bindExV
   , bindExC
   , varBind
+  , idxBind
   , trimToVar
   , substV
   , substC
   , inb42
+  , quantifyContext
   , VarId
   ) where
 
@@ -23,6 +25,8 @@ import Language.Carol.AST.Terms (VarId)
 import Language.Carol.AST.Types
 import Language.Carol.AST.Types.ExVars
 import Language.Carol.TypeCheck.Error
+
+import Data.SBV
 
 import Data.Map (Map)
 import qualified Data.Map as M
@@ -48,9 +52,10 @@ data (RefDomain d) => Context d =
   | ExValT (ExV d) (Context d)
   | ExCompT (ExC d) (Context d)
   | VarBind VarId (ValT d) (Context d)
+  | IdxBind IVarId (ISort d) (Context d)
   deriving (Eq,Ord)
 
-instance (RefDomain d, Pretty d, Pretty (DRef d)) => Pretty (Context d) where
+instance (RefDomain d, Pretty d, Pretty (DRef d), Pretty (ISort d)) => Pretty (Context d) where
   pretty Empty = "*"
   pretty (ExValT e g) =
     pretty g ++ ", " ++ pretty e
@@ -58,7 +63,8 @@ instance (RefDomain d, Pretty d, Pretty (DRef d)) => Pretty (Context d) where
     pretty g ++ ", " ++ pretty e
   pretty (VarBind x vt g) =
     pretty g ++ ", " ++ pretty x ++ ":" ++ pretty vt
-
+  pretty (IdxBind a vt g) =
+    pretty g ++ ", " ++ pretty a ++ ":" ++ pretty vt
 emptyContext :: Context d
 emptyContext = Empty
 
@@ -70,6 +76,7 @@ isBound x = \case
   VarBind y t g' -> if x == y
                        then Just t
                        else isBound x g'
+  IdxBind _ _ g' -> isBound x g'
 
 data ExStatus d = ExNonExist | ExUnBound | ExBound (ValT d)
 
@@ -83,6 +90,7 @@ existStatusV a = \case
   ExValT _ g' -> existStatusV a g'
   ExCompT _ g' -> existStatusV a g'
   VarBind _ _ g' -> existStatusV a g'
+  IdxBind _ _ g' -> existStatusV a g'
 
 existStatusC :: (RefDomain d) => ExIdC -> Context d -> ExStatusC d
 existStatusC b = \case
@@ -130,6 +138,7 @@ bindExVR g0 a vt = \case
   ExValT     e g' -> ExValT     e <$> bindExVR g0 a vt g'
   ExCompT    e g' -> ExCompT    e <$> bindExVR g0 a vt g'
   VarBind x t1 g' -> VarBind x t1 <$> bindExVR g0 a vt g'
+  IdxBind x t1 g' -> IdxBind x t1 <$> bindExVR g0 a vt g'
 
 bindExC :: (RefDomain d) => ExIdC -> CompT d -> Context d -> TErr d (Context d)
 bindExC b mt g = bindExCR g b mt g
@@ -149,6 +158,9 @@ bindExCR g0 b mt = \case
 
 varBind :: (RefDomain d) => VarId -> ValT d -> Context d -> Context d
 varBind = VarBind
+
+idxBind :: (RefDomain d) => IVarId -> ISort d -> Context d -> Context d
+idxBind = IdxBind
 
 trimToVar :: (RefDomain d) => VarId -> Context d -> TErr d (Context d)
 trimToVar x = \case
@@ -186,6 +198,7 @@ substC g = \case
     ExBoundC mt -> substC g mt
     ExUnBoundC -> return $ ExCT b
     ExNonExistC -> terr $ TOther "SubstC failed; missing comp-exvar."
+  Idx a s m -> Idx a s <$> substC g m
 
 onSnd :: (a -> b) -> (c1,c2,a) -> (c1,c2,b)
 onSnd f (c1,c2,a) = (c1,c2,f a)
@@ -210,3 +223,13 @@ inb42 b = \case
     in return (aNew, bNew, gNew)
   ExCompT e g' -> onSnd (ExCompT e) <$> inb42 b g'
   VarBind x vt g' -> onSnd (VarBind x vt) <$> inb42 b g'
+
+quantifyContext :: (RefDomain d) => Context d -> Symbolic (Map IVarId SInteger)
+quantifyContext Empty = return mempty
+quantifyContext (ExValT _ g) = quantifyContext g
+quantifyContext (ExCompT _ g) = quantifyContext g
+quantifyContext (VarBind _ _ g) = quantifyContext g
+quantifyContext (IdxBind (IVarId s) _ g) = do 
+  a <- forall s
+  m <- quantifyContext g
+  return $ M.insert (IVarId s) a m
