@@ -6,6 +6,10 @@
 
 module Language.Carol.AST.Types
   ( ValT (..)
+  , unitT
+  , unit1T
+  , unit2T
+  , unit3T
   , boolT
   , boolSchema
   , trueS
@@ -65,6 +69,18 @@ baseTypeV = \case
   PairT vt1 vt2 -> PairT (baseTypeV vt1) (baseTypeV vt2)
   DsT t r -> DsT t RefTrue -- remove refinement
   ExVT e -> ExVT e
+
+unitT :: (RefDomain d) => ValT d
+unitT = UnitT
+
+unit1T :: (RefDomain d) => ValT d
+unit1T = unitT
+
+unit2T :: (RefDomain d) => ValT d
+unit2T = PairT unitT unit1T
+
+unit3T :: (RefDomain d) => ValT d
+unit3T = PairT unitT unit2T
 
 trueS = SumId "True"
 falseS = SumId "False"

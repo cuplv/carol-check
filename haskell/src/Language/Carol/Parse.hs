@@ -38,17 +38,23 @@ funTP = do
 vtypeP :: Parsec String s (ValT')
 vtypeP = 
   unitTP
+  <|> unit1TP
+  <|> unit2TP
+  <|> unit3TP
   <|> intTP
   <|> boolTP
   <|> pairTP
 
-unitTP = string "{}" >> return UnitT
+unitTP = string "{}" >> return unitT
+
+unit1TP = string "{1}" >> return unit1T
+
+unit2TP = string "{2}" >> return unit2T
+
+unit3TP = string "{3}" >> return unit3T
 
 intTP :: Parsec String s (ValT')
 intTP = string "Int" >> return intT
-
-strTP :: Parsec String s ValT'
-strTP = string "String" >> return stringT
 
 boolTP = string "Bool" >> return boolT
 pairTP = parensP $ do
@@ -71,16 +77,6 @@ compP = do
           [retP
           ,funP
           ,apP
-          ,testP
-          ,modP
-          ,queryP
-          ,issueP
-          ,produceP
-          ,consumeP
-          ,strcatP
-          ,strcmpP
-          ,strgetP
-          ,strputP
           ,parensP compP]
   mxm2 <- optionMaybe (try extBindP)
   case mxm2 of
@@ -95,103 +91,114 @@ extBindP = do
   m2 <- compP
   return $ (x,m2)
 
-testP :: Parsec String s Comp'
-testP = do
-  string "test" >> spaces
-  op <- valP
-  arg1 <- spaces >> string "<-" >> spaces >> valP
+addP :: Parsec String s Comp'
+addP = do
+  string "add" >> spaces
+  arg1 <- spaces >> valP
   arg2 <- spaces >> char ',' >> spaces >> valP
   spaces >> string "as" >> spaces
   x <- varIdentP
   spaces >> char '|' >> spaces
   m' <- compP
-  return $ DsC IntTest [op,arg1,arg2] (Just x,m')
+  return $ DsC IntAdd (Pair arg1 arg2) (Just x,m')
 
-modP :: Parsec String s Comp'
-modP = do
-  string "mod" >> spaces
-  op <- valP
-  arg <- spaces >> string "<-" >> spaces >> valP
-  spaces >> string "as" >> spaces
-  x <- varIdentP
-  spaces >> char '|' >> spaces
-  m' <- compP
-  return $ DsC IntMod [op,arg] (Just x,m')
+-- testP :: Parsec String s Comp'
+-- testP = do
+--   string "test" >> spaces
+--   op <- valP
+--   arg1 <- spaces >> string "<-" >> spaces >> valP
+--   arg2 <- spaces >> char ',' >> spaces >> valP
+--   spaces >> string "as" >> spaces
+--   x <- varIdentP
+--   spaces >> char '|' >> spaces
+--   m' <- compP
+--   return $ DsC IntTest [op,arg1,arg2] (Just x,m')
 
-strcatP :: Parsec String s Comp'
-strcatP = do
-  string "strcat" >> spaces
-  s1 <- valP
-  spaces >> char ',' >> spaces
-  s2 <- valP
-  spaces >> string "as" >> spaces
-  x <- varIdentP
-  spaces >> char '|' >> spaces
-  m' <- compP
-  return $ DsC StrCat [s1,s2] (Just x, m')
+-- modP :: Parsec String s Comp'
+-- modP = do
+--   string "mod" >> spaces
+--   op <- valP
+--   arg <- spaces >> string "<-" >> spaces >> valP
+--   spaces >> string "as" >> spaces
+--   x <- varIdentP
+--   spaces >> char '|' >> spaces
+--   m' <- compP
+--   return $ DsC IntMod [op,arg] (Just x,m')
 
-strcmpP :: Parsec String s Comp'
-strcmpP = do
-  string "strcmp" >> spaces
-  s1 <- valP
-  spaces >> char ',' >> spaces
-  s2 <- valP
-  spaces >> string "as" >> spaces
-  x <- varIdentP
-  spaces >> char '|' >> spaces
-  m' <- compP
-  return $ DsC StrCmp [s1,s2] (Just x, m')
+-- strcatP :: Parsec String s Comp'
+-- strcatP = do
+--   string "strcat" >> spaces
+--   s1 <- valP
+--   spaces >> char ',' >> spaces
+--   s2 <- valP
+--   spaces >> string "as" >> spaces
+--   x <- varIdentP
+--   spaces >> char '|' >> spaces
+--   m' <- compP
+--   return $ DsC StrCat [s1,s2] (Just x, m')
 
-strgetP :: Parsec String s Comp'
-strgetP = do
-  string "strget"
-  spaces >> string "as" >> spaces
-  x <- varIdentP
-  spaces >> char '|' >> spaces
-  m' <- compP
-  return $ DsC StrGet [] (Just x, m')
+-- strcmpP :: Parsec String s Comp'
+-- strcmpP = do
+--   string "strcmp" >> spaces
+--   s1 <- valP
+--   spaces >> char ',' >> spaces
+--   s2 <- valP
+--   spaces >> string "as" >> spaces
+--   x <- varIdentP
+--   spaces >> char '|' >> spaces
+--   m' <- compP
+--   return $ DsC StrCmp [s1,s2] (Just x, m')
 
-strputP :: Parsec String s Comp'
-strputP = do
-  string "strput" >> spaces
-  s1 <- valP
-  spaces >> char '|' >> spaces
-  m' <- compP
-  return $ DsC StrPut [s1] (Nothing, m')
+-- strgetP :: Parsec String s Comp'
+-- strgetP = do
+--   string "strget"
+--   spaces >> string "as" >> spaces
+--   x <- varIdentP
+--   spaces >> char '|' >> spaces
+--   m' <- compP
+--   return $ DsC StrGet [] (Just x, m')
 
-queryP :: Parsec String s Comp'
-queryP = do
-  string "query" >> spaces
-  op <- valP
-  spaces >> string "as" >> spaces
-  x <- varIdentP
-  spaces >> char '|' >> spaces
-  m' <- compP
-  return $ DsC IntQuery [op] (Just x,m')
+-- strputP :: Parsec String s Comp'
+-- strputP = do
+--   string "strput" >> spaces
+--   s1 <- valP
+--   spaces >> char '|' >> spaces
+--   m' <- compP
+--   return $ DsC StrPut [s1] (Nothing, m')
 
-issueP :: Parsec String s Comp'
-issueP = do
-  string "issue" >> spaces
-  op <- valP
-  spaces >> char '|' >> spaces
-  m' <- compP
-  return $ DsC IntIssue [op] (Nothing,m')
+-- queryP :: Parsec String s Comp'
+-- queryP = do
+--   string "query" >> spaces
+--   op <- valP
+--   spaces >> string "as" >> spaces
+--   x <- varIdentP
+--   spaces >> char '|' >> spaces
+--   m' <- compP
+--   return $ DsC IntQuery [op] (Just x,m')
 
-produceP :: Parsec String s Comp'
-produceP = do
-  string "produce" >> spaces
-  op <- valP
-  spaces >> char '|' >> spaces
-  m' <- compP
-  return $ DsC IntProduce [op] (Nothing,m')
+-- issueP :: Parsec String s Comp'
+-- issueP = do
+--   string "issue" >> spaces
+--   op <- valP
+--   spaces >> char '|' >> spaces
+--   m' <- compP
+--   return $ DsC IntIssue [op] (Nothing,m')
 
-consumeP :: Parsec String s Comp'
-consumeP = do
-  string "consume" >> spaces
-  op <- valP
-  spaces >> char '|' >> spaces
-  m' <- compP
-  return $ DsC IntConsume [op] (Nothing,m')
+-- produceP :: Parsec String s Comp'
+-- produceP = do
+--   string "produce" >> spaces
+--   op <- valP
+--   spaces >> char '|' >> spaces
+--   m' <- compP
+--   return $ DsC IntProduce [op] (Nothing,m')
+
+-- consumeP :: Parsec String s Comp'
+-- consumeP = do
+--   string "consume" >> spaces
+--   op <- valP
+--   spaces >> char '|' >> spaces
+--   m' <- compP
+--   return $ DsC IntConsume [op] (Nothing,m')
 
 parensP :: Parsec String s a -> Parsec String s a
 parensP = between (char '(' >> spaces) (spaces >> char ')')
@@ -224,15 +231,18 @@ valP = do
   v <- choice $ map try
          [varP
          ,unitP
+         ,unit1P
+         ,unit2P
+         ,unit3P
          ,intP
-         ,strP
+         -- ,strP
          ,pairP
-         ,trueP
-         ,falseP
-         ,addP
-         ,subP
-         ,leqP
-         ,geqP
+         -- ,trueP
+         -- ,falseP
+         -- ,addP
+         -- ,subP
+         -- ,leqP
+         -- ,geqP
          ,parensP valP]
   spaces
   mvt <- optionMaybe (try annoEndP)
@@ -243,7 +253,18 @@ valP = do
 annoEndP = char ':' >> spaces >> vtypeP
 
 varP = Var <$> varIdentP
-unitP = string "{=}" >> return Unit
+
+unitP :: Parsec String s Val'
+unitP = string "{=}" >> return unit
+
+unit1P :: Parsec String s Val'
+unit1P = string "{=1}" >> return unit1
+
+unit2P :: Parsec String s Val'
+unit2P = string "{=2}" >> return unit2
+
+unit3P :: Parsec String s Val'
+unit3P = string "{=3}" >> return unit3
 
 intP :: Parsec String s (Val')
 intP = ((intV . read) <$> (char '-' >> many1 digit)) <|> natP
@@ -251,13 +272,13 @@ intP = ((intV . read) <$> (char '-' >> many1 digit)) <|> natP
 natP :: Parsec String s (Val')
 natP = (intV . read) <$> many1 digit
 
-strP :: Parsec String s Val'
-strP = do
-  s <- between (char '"') (char '"') (many p)
-  return (stringV s)
-  where p = satisfy (\c -> c /= '"' && c /= '\\')
-            <|> try (string "\\\"" >> return '"')
-            <|> try (string "\\n" >> return '\n')
+-- strP :: Parsec String s Val'
+-- strP = do
+--   s <- between (char '"') (char '"') (many p)
+--   return (stringV s)
+--   where p = satisfy (\c -> c /= '"' && c /= '\\')
+--             <|> try (string "\\\"" >> return '"')
+--             <|> try (string "\\n" >> return '\n')
 
 pairP :: Parsec String s (Val')
 pairP = parensP $ do
@@ -271,15 +292,3 @@ trueP = string "True" >> return (boolV True)
 
 falseP :: Parsec String s (Val')
 falseP = string "False" >> return (boolV False)
-
-addP :: Parsec String s (Val')
-addP = addV <$> (char '+' >> natP)
-
-subP :: Parsec String s (Val')
-subP = subV <$> (char '-' >> natP)
-
-leqP :: Parsec String s (Val')
-leqP = string "LEQ" >> return leqV
-
-geqP :: Parsec String s (Val')
-geqP = string "GEQ" >> return geqV

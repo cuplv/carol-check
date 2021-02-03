@@ -7,6 +7,10 @@ module Language.Carol.AST.Terms
   ( Val (..)
   , ValDomain (..)
   , boolV
+  , unit
+  , unit1
+  , unit2
+  , unit3
   , Comp (..)
   , CompDomain (..)
   , VarId (..)
@@ -24,9 +28,8 @@ class (RefDomain d, Eq (DVal d), Ord (DVal d))
   dValType :: DVal d -> (d, Refinement d)
 
 class (ValDomain d) => CompDomain e d where
-  dCompSig :: e -> ([ValT d], ValT d)
   dCompSigR :: e -> ([(IVarId, ISort d)], ValT d, ValT d)
-  dCompPretty :: e -> [Val e d] -> String
+  dCompPretty :: e -> Val e d -> String
 
 newtype VarId = VarId String deriving (Eq,Ord)
 
@@ -56,6 +59,18 @@ instance (Pretty d, Pretty (DRef d), CompDomain e d)
     Pair v1 v2 -> "(" ++ pretty v1 ++ ", " ++ pretty v2 ++ ")"
     Anno v vt -> pretty v ++ " : " ++ pretty vt
 
+unit :: (CompDomain e d) => Val e d
+unit = Unit
+
+unit1 :: (CompDomain e d) => Val e d
+unit1 = unit
+
+unit2 :: (CompDomain e d) => Val e d
+unit2 = Pair unit unit1
+
+unit3 :: (CompDomain e d) => Val e d
+unit3 = Pair unit unit2
+
 boolV :: (CompDomain e d) => Bool -> Val e d
 boolV b = Sum boolSchema i Unit
   where i = if b
@@ -75,7 +90,7 @@ data (CompDomain e d) => Comp e d =
   | Pms (Val e d) (Map SumId (Abst e d))
   | Proj ProdId (Comp e d)
   | Ap (Val e d) (Comp e d)
-  | DsC e [Val e d] (Maybe VarId, Comp e d)
+  | DsC e (Val e d) (Maybe VarId, Comp e d)
   | AnnoC (Comp e d) (CompT d)
   deriving (Eq,Ord)
 
@@ -95,7 +110,7 @@ instance (Pretty d, Pretty (DRef d), CompDomain e d)
     Pms v mp -> "pm " ++ pretty v ++ " as {" ++ "..." ++ "}"
     Proj i m' -> show i ++ "`" ++ pretty m'
     Ap v m' -> pretty v ++ "`" ++ pretty m'
-    DsC e vs (Just x,m') -> dCompPretty e vs ++ " as " 
-                            ++ sha (x,m')
-    DsC e vs (Nothing,m') -> dCompPretty e vs ++ " |" 
-                             ++ pretty m'
+    DsC e v (Just x,m') -> dCompPretty e v ++ " as " 
+                           ++ sha (x,m')
+    DsC e v (Nothing,m') -> dCompPretty e v ++ " |" 
+                            ++ pretty m'

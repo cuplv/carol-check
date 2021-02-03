@@ -99,16 +99,13 @@ synthC m g = case m of
     (mt,g1) <- synthC m g
     mt' <- substC g1 mt
     appSynth mt' v g1
-  DsC d vs (mx,m') -> do
-    let (vts,outVT) = dCompSig d
-    g1 <- foldM (\g (v,vt) -> checkV v vt g) g (zip vs vts)
+  DsC d v (mx,m') -> do
+    let (vars,vt,outVT) = dCompSigR d
+    g1 <- checkV v vt g
+    -- g1 <- foldM (\g (v,vt) -> checkV v vt g) g (zip vs vts)
     case mx of
       Just x -> synthC m' (varBind x outVT g1)
       Nothing -> synthC m' g1
-  -- AnnoC m mt -> do
-  --   (mt1,g1) <- synthC m g
-  --   g2 <- subCheckC mt mt1 g1
-  --   return (mt1,g2)
   AnnoC m mt -> do
     g1 <- checkC m mt g
     return (mt,g1)

@@ -13,110 +13,100 @@ main = defaultMain tests
 tests = testGroup "Tests" [unitTests]
 
 unitTests = testGroup "Unit tests"
-  [testCase "Double app" 
-   . checks
-   $ "  5` +1`       |a|  \
-     \               |x|  \
-     \  mod a <- x as y|  \
-     \  return y          " |:- RetT intT
-  ,typeCase
-     "Mod"
-     "return +1"
-     (RetT intModT)
-  ,testCase "Mod2" $ checks ("return +1" |:- RetT intModT)
-  ,typeCase
-     "Function"
-     "|asdf1234| return asdf1234 : {}"
-     (FunT UnitT $ RetT UnitT)
-  ,typeCase
-     "Interleaved double app"
-     "  +1`          |a|  \
-     \  5`           |x|  \
-     \  mod a <- x as y|  \
-     \  return y          "
-     (RetT intT)
-  ,typeCase
-    "Bind3"
-    "return {=} to x| 5` |y| return (x,y)"
-    (RetT (PairT UnitT intT))
-  ,typeCase
-    "Bind4"
-    "return {=} to x| 5` |y| return (y,x)"
-    (RetT (PairT intT UnitT))
-  ,typeCase
-    "ApFunApFun"
-    "{=}` |x| 5` |y| return (x,y)"
-    (RetT (PairT UnitT intT))
+  [testGroup "Core"
+     [(testCase "Double App"
+       . checks
+       $ "  {=1}` {=2}` |x2|  \
+         \              |x1|  \
+         \  return (x1,x2)    " |:- RetT (PairT unit1T unit2T))
+
+     ,(testCase "Function"
+       . checks
+       $ "|asdf1234| return asdf1234 : {}" |:- FunT unitT (RetT unitT))
+
+     ,(testCase "Interleaved Double App"
+       . checks
+       $ "  {=1}` |x1|      \
+         \  {=2}` |x2|      \
+         \  return (x1,x2)  " |:- RetT (PairT unit1T unit2T))
+
+     ,(testCase "Bind3" . checks $
+         "return {=1} to x| {=2}` |y| return (x,y)"
+         |:- RetT (PairT unit1T unit2T))
+
+     ,(testCase "Bind4" . checks $
+         "return {=1} to x| {=2}` |y| return (y,x)"
+         |:- RetT (PairT unit2T unit1T))
+
+     ,(testCase "ApFunApFun" . checks $
+         "{=1}` |x| {=2}` |y| return (x,y)"
+         |:- RetT (PairT unit1T unit2T))
+     ]
   ,testGroup "ApApFunFun"
-     [typeCase
-       "Fun2"
-       "{=}` 5` |x| |y| return (x,y)"
-       (RetT (PairT intT UnitT))
-     ,typeCase
-       "Fun3"
-       "3` 1` {=}` |xU||x2||x3| return (x3,xU)"
-       (RetT (PairT intT UnitT))
-     ,typeCase
-       "Fun4"
-       "3` 1` {=}` {=}` |xU0||xU||x2||x3| return (x3,xU)"
-       (RetT (PairT intT UnitT))
-     ,typeCase
-       "Fun5"
-       "3` 1` {=}` {=}` 2` |x1||xU0||xU||x2||x3| return (x3,xU)"
-       (RetT (PairT intT UnitT))
-     ,typeCase
-       "Fun6"
-       "3` 1` {=}` {=}` 2` 8` |y||z||xU0||xU||x2||x3| return (x3,xU)"
-       (RetT (PairT intT UnitT))
-     ,typeCase
-       "Bind1"
-       "5` return {=} to x| |y| return (x,y)"
-       (RetT (PairT UnitT intT))
-     ,typeCase
-       "Bind2"
-       "5` return {=} to x| |y| return (y,x)"
-       (RetT (PairT intT UnitT))
+     [(testCase "Fun2" . checks $
+         "{=1}` {=2}` |x2| |x1| return (x2,x1)"
+         |:- RetT (PairT unit2T unit1T))
+     ,(testCase "Fun3" . checks $
+         "{=3}` {=2}` {=1}` |x1||x2||x3| return (x3,x1)"
+         |:- RetT (PairT unit3T unit1T))
+     ,(testCase "Fun4" . checks $
+         "{=3}`{=2}`{=1}`{=1}`|x1||y1||x2||x3| return (x3,x1)"
+         |:- RetT (PairT unit3T unit1T))
+     ,(testCase "Fun5" . checks $
+         "{=3}`{=2}`{=1}`{=1}`{=2}`|x2||x1||y1||y2||x3| return (x3,y1)"
+         |:- RetT (PairT unit3T unit1T))
+     ,(testCase "Fun6" . checks $
+         "  {=1}`{=2}`{=3}`{=1}`{=3}`{=1}`  \
+         \  |x1||x3||y1||y3||x2||z1|  \
+         \  return (x2,x3)"
+         |:- RetT (PairT unit2T unit3T))
+     ,(testCase "Bind1" . checks $
+         "{=3}` return {=1} to x| |y| return (x,y)"
+         |:- RetT (PairT unit1T unit3T))
+     ,(testCase "Bind2" . checks $
+         "{=3}` return {=1} to x| |y| return (y,x)"
+         |:- RetT (PairT unit3T unit1T))
      ]
-  ,testGroup "Specials"
-     [typeCase
-        "Query"
-        "query LEQ as x| 5` |y| return (y,x)"
-        (RetT (PairT intT intT))
-     ,typeCase
-        "Issue"
-        "issue +2 | return {=}"
-        (RetT UnitT)
-     ,typeCase
-        "Produce"
-        "produce +2 | return {=}"
-        (RetT UnitT)
-     ,typeCase
-        "Consume"
-        "consume +2 | return {=}"
-        (RetT UnitT)
-     ,typeCase
-        "ModIn1"
-        "mod +1 <- 5 as x| True` |x| return x"
-        (RetT boolT)
-     ,typeCase
-        "ModIn2"
-        "True` mod +1 <- 5 as x| |x| return x"
-        (RetT boolT)
-     ,typeCase
-        "ModOut"
-        "True` |x| (mod +1 <- 5 as x| return {=}) to y| return x"
-        (RetT boolT)
-     ,typeCase
-        "String"
-        "return \"Hello\\nWorld!\""
-        (RetT stringT)
-     ,testCase "GetString"
-      . checks
-      $ "strget as x| strcat x, x as y| return y" |:- RetT stringT
-     ,testCase "PutString"
-      . checks
-      $ "\"Hi.\" ` |x| strput x | return {=}" |:- RetT UnitT
-     ]
+  -- ,testGroup "Specials"
+  --    [typeCase
+  --       "Query"
+  --       "query LEQ as x| 5` |y| return (y,x)"
+  --       (RetT (PairT intT intT))
+  --    ,typeCase
+  --       "Issue"
+  --       "issue +2 | return {=}"
+  --       (RetT UnitT)
+  --    ,typeCase
+  --       "Produce"
+  --       "produce +2 | return {=}"
+  --       (RetT UnitT)
+  --    ,typeCase
+  --       "Consume"
+  --       "consume +2 | return {=}"
+  --       (RetT UnitT)
+  --    ,typeCase
+  --       "ModIn1"
+  --       "mod +1 <- 5 as x| True` |x| return x"
+  --       (RetT boolT)
+  --    ,typeCase
+  --       "ModIn2"
+  --       "True` mod +1 <- 5 as x| |x| return x"
+  --       (RetT boolT)
+  --    ,typeCase
+  --       "ModOut"
+  --       "True` |x| (mod +1 <- 5 as x| return {=}) to y| return x"
+  --       (RetT boolT)
+  --    ,typeCase
+  --       "String"
+  --       "return \"Hello\\nWorld!\""
+  --       (RetT stringT)
+  --    ,testCase "GetString"
+  --     . checks
+  --     $ "strget as x| strcat x, x as y| return y" |:- RetT stringT
+  --    ,testCase "PutString"
+  --     . checks
+  --     $ "\"Hi.\" ` |x| strput x | return {=}" |:- RetT UnitT
+  --    ]
   ,testGroup "Sub" $
      let t n c m = testCase n . c $ m
      in [t "SimpleRange1" 
