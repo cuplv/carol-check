@@ -25,6 +25,7 @@ class (RefDomain d, Eq (DVal d), Ord (DVal d))
 
 class (ValDomain d) => CompDomain e d where
   dCompSig :: e -> ([ValT d], ValT d)
+  dCompSigR :: e -> ([(IVarId, ISort d)], ValT d, ValT d)
   dCompPretty :: e -> [Val e d] -> String
 
 newtype VarId = VarId String deriving (Eq,Ord)

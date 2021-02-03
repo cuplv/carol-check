@@ -12,6 +12,7 @@ module Language.Carol.TypeCheck.Context
   , bindExC
   , varBind
   , idxBind
+  , exIdx
   , trimToVar
   , substV
   , substC
@@ -53,6 +54,7 @@ data (RefDomain d) => Context d =
   | ExCompT (ExC d) (Context d)
   | VarBind VarId (ValT d) (Context d)
   | IdxBind IVarId (ISort d) (Context d)
+  | ExIdx IVarId (ISort d) (Context d)
   deriving (Eq,Ord)
 
 instance (RefDomain d, Pretty d, Pretty (DRef d), Pretty (ISort d)) => Pretty (Context d) where
@@ -77,6 +79,7 @@ isBound x = \case
                        then Just t
                        else isBound x g'
   IdxBind _ _ g' -> isBound x g'
+  ExIdx _ _ g' -> isBound x g'
 
 data ExStatus d = ExNonExist | ExUnBound | ExBound (ValT d)
 
@@ -91,6 +94,7 @@ existStatusV a = \case
   ExCompT _ g' -> existStatusV a g'
   VarBind _ _ g' -> existStatusV a g'
   IdxBind _ _ g' -> existStatusV a g'
+  ExIdx _ _ g' -> existStatusV a g'
 
 existStatusC :: (RefDomain d) => ExIdC -> Context d -> ExStatusC d
 existStatusC b = \case
@@ -139,6 +143,7 @@ bindExVR g0 a vt = \case
   ExCompT    e g' -> ExCompT    e <$> bindExVR g0 a vt g'
   VarBind x t1 g' -> VarBind x t1 <$> bindExVR g0 a vt g'
   IdxBind x t1 g' -> IdxBind x t1 <$> bindExVR g0 a vt g'
+  ExIdx   x t1 g' -> IdxBind x t1 <$> bindExVR g0 a vt g'
 
 bindExC :: (RefDomain d) => ExIdC -> CompT d -> Context d -> TErr d (Context d)
 bindExC b mt g = bindExCR g b mt g
@@ -161,6 +166,9 @@ varBind = VarBind
 
 idxBind :: (RefDomain d) => IVarId -> ISort d -> Context d -> Context d
 idxBind = IdxBind
+
+exIdx :: (RefDomain d) => IVarId -> ISort d -> Context d -> Context d
+exIdx = ExIdx
 
 trimToVar :: (RefDomain d) => VarId -> Context d -> TErr d (Context d)
 trimToVar x = \case
@@ -231,5 +239,9 @@ quantifyContext (ExCompT _ g) = quantifyContext g
 quantifyContext (VarBind _ _ g) = quantifyContext g
 quantifyContext (IdxBind (IVarId s) _ g) = do 
   a <- forall s
+  m <- quantifyContext g
+  return $ M.insert (IVarId s) a m
+quantifyContext (ExIdx (IVarId s) _ g) = do 
+  a <- exists s
   m <- quantifyContext g
   return $ M.insert (IVarId s) a m

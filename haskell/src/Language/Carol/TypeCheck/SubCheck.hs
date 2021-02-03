@@ -9,7 +9,7 @@ import Language.Carol.TypeCheck.Context
 import Language.Carol.TypeCheck.Inst
 import Language.Carol.TypeCheck.Error
 
--- | Check that the first value type a subtype of the second value
+-- | Check that the first value type is a subtype of the second value
 -- type.
 subCheckV :: (RefDomain d)
   => ValT d
@@ -37,7 +37,7 @@ subCheckV vt1 vt2 g = case (vt1,vt2) of
        else terr $ TMismatch vt1 vt2
   _ -> terr $ TMismatch vt1 vt2
 
--- | Check that the first computation type a subtype of the second
+-- | Check that the first computation type is a subtype of the second
 -- computation type.
 subCheckC :: (RefDomain d)
   => CompT d

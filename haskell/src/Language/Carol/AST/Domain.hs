@@ -95,6 +95,7 @@ data EmptyCD
 
 instance (ValDomain d) => CompDomain EmptyCD d where
   dCompSig = undefined
+  dCompSigR = undefined
   dCompPretty = undefined
 
 data StdVD = IntT | StrT deriving (Eq,Ord)
@@ -106,7 +107,7 @@ instance Show StdVD where
 instance Pretty StdVD where
   pretty = show
 
-data IntObject = Literal Int | IntVar IVarId deriving (Show,Eq,Ord)
+data IntObject = Literal Int | IntVar IVarId | IntAddObj IntObject IntObject deriving (Show,Eq,Ord)
 
 instance Pretty IntObject where
   pretty (Literal n) = show n
@@ -183,6 +184,7 @@ stringV = DsV . StrConst
 
 data StdCD =
     IntMod
+  | IntAdd
   | IntTest
   | IntQuery
   | IntIssue
@@ -232,6 +234,10 @@ instance CompDomain StdCD StdVD where
     IntIssue -> ([SumT intDEffSum], UnitT)
     IntProduce -> ([SumT intDEffSum], UnitT)
     IntConsume -> ([SumT intDEffSum], UnitT)
+  dCompSigR = \case
+    IntAdd -> ([(IVarId "n1", intSort), (IVarId "n2", intSort)]
+              ,PairT (intTEq (IVarId "n1")) (intTEq (IVarId "n2"))
+              ,intT)
 
   dCompPretty IntMod vs = "mod " ++ lsPretty vs
   dCompPretty IntTest vs = "test " ++ lsPretty vs
