@@ -112,17 +112,27 @@ data IntObject = Literal Int | IntVar IVarId | IntAddObj IntObject IntObject der
 instance Pretty IntObject where
   pretty (Literal n) = show n
   pretty (IntVar a) = pretty a
+  pretty (IntAddObj a b) = pretty a ++ " + " ++ pretty b
 
 instance RefDomain StdVD where
   data DRef StdVD = LEQ IntObject | GEQ IntObject deriving (Show,Eq,Ord)
   data ISort StdVD = IntS deriving (Show,Eq,Ord)
   refConstraint m = \case
-    LEQ (Literal i) -> \v -> v .<= literal (fromIntegral i)
-    LEQ (IntVar a) -> case M.lookup a m of
-                        Just x -> \v -> v .<= x
-    GEQ (Literal i) -> \v -> v .>= literal (fromIntegral i)
-    GEQ (IntVar a) -> case M.lookup a m of
-                        Just x -> \v -> v .>= x
+    -- LEQ (Literal i) -> \v -> v .<= literal (fromIntegral i)
+    -- LEQ (IntVar a) -> case M.lookup a m of
+    --                     Just x -> \v -> v .<= x
+    -- GEQ (Literal i) -> \v -> v .>= literal (fromIntegral i)
+    -- GEQ (IntVar a) -> case M.lookup a m of
+    --                     Just x -> \v -> v .>= x
+    LEQ o -> let s = mkobj o
+             in \v -> v .<= s
+    GEQ o -> let s = mkobj o
+             in \v -> v .>= s
+    where mkobj = \case
+            Literal i -> literal (fromIntegral i)
+            IntVar a -> case M.lookup a m of
+                          Just x -> x
+            IntAddObj o1 o2 -> mkobj o1 + mkobj o2
   subVar a (LEQ (IntVar a')) = if a == a'
                                then LEQ (IntVar a)
                                else LEQ (IntVar a')
@@ -237,7 +247,12 @@ instance CompDomain StdCD StdVD where
   dCompSigR = \case
     IntAdd -> ([(IVarId "n1", intSort), (IVarId "n2", intSort)]
               ,PairT (intTEq (IVarId "n1")) (intTEq (IVarId "n2"))
-              ,intT)
+              ,DsT IntT (RefAnd (RefAtom $ GEQ (IntAddObj 
+                                                  (IntVar$ IVarId "n1")
+                                                  (IntVar$ IVarId "n2")))
+                                (RefAtom $ LEQ (IntAddObj 
+                                                  (IntVar$ IVarId "n1")
+                                                  (IntVar$ IVarId "n2")))))
 
   dCompPretty IntMod vs = "mod " ++ lsPretty vs
   dCompPretty IntTest vs = "test " ++ lsPretty vs
