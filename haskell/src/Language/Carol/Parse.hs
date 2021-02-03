@@ -77,6 +77,7 @@ compP = do
           [retP
           ,funP
           ,apP
+          ,addP
           ,parensP compP]
   mxm2 <- optionMaybe (try extBindP)
   case mxm2 of

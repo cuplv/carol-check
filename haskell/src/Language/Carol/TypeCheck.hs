@@ -101,11 +101,16 @@ synthC m g = case m of
     appSynth mt' v g1
   DsC d v (mx,m') -> do
     let (vars,vt,outVT) = dCompSigR d
-    g1 <- checkV v vt g
+    let g1 = foldr (\(a,s) -> exIdx a s) g vars
+    -- Here, we don't replace the index variables in vt with our
+    -- existentially quantified vars, because they are the same.  To
+    -- avoid namespace collisions, we should actually generate fresh
+    -- existential vars and then replace them accordingly.
+    g2 <- checkV v vt g1
     -- g1 <- foldM (\g (v,vt) -> checkV v vt g) g (zip vs vts)
     case mx of
-      Just x -> synthC m' (varBind x outVT g1)
-      Nothing -> synthC m' g1
+      Just x -> synthC m' (varBind x outVT g2)
+      Nothing -> synthC m' g2
   AnnoC m mt -> do
     g1 <- checkC m mt g
     return (mt,g1)

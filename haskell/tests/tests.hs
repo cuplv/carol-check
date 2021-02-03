@@ -144,6 +144,20 @@ unitTests = testGroup "Unit tests"
                               (RetT (PairT (intTEq (IVarId "ax")) UnitT)))
            in "|x| return (5,{=})" |:- t
         ]
+  ,testGroup "CompSub"
+     [(testCase "BaseAdd" . checks $
+         "add 1, 3 as x| return x" |:- RetT intT)
+     ,(testCase "BaseAddM". misses $
+         "add 1, 3 as x| return x" |:- RetT unitT)
+     ,(testCase "BaseAddM2" . misses $
+         "add 1, {=} as x| return x" |:- RetT intT)
+     ,(testCase "RefAdd" . checks $
+         let t = (RetT (intTR 4 4))
+         in "add 1, 3 as x| return x" |:- t)
+     ,(testCase "RefAddM" . misses $
+         let t = (RetT (intTR 6 6))
+         in "add 1, 3 as x| return x" |:- t)
+     ]
   ]
 
 (-:-) :: Comp' -> CompT' -> IO Comp'

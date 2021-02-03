@@ -15,6 +15,7 @@ module Language.Carol.AST.Domain
   , intTGe'
   , intTR
   , intTEq
+  , intTEqAdd
   , intV
   , intSort
   , StdCD (..)
@@ -129,6 +130,9 @@ instance Pretty (DRef StdVD) where
   pretty (LEQ n) = "ν ≤ " ++ pretty n
   pretty (GEQ n) = "ν ≥ " ++ pretty n
 
+instance Pretty (ISort StdVD) where
+  pretty IntS = "Int"
+
 instance ValDomain StdVD where
   data DVal StdVD = IntConst Int deriving (Show,Eq,Ord)
   dValType (IntConst n) = (IntT, RefAnd 
@@ -161,6 +165,10 @@ intTR low high = DsT IntT (RefAnd
 intTEq :: IVarId -> ValT StdVD
 intTEq a = DsT IntT (RefAnd (RefAtom $ GEQ (IntVar a))
                             (RefAtom $ LEQ (IntVar a)))
+
+intTEqAdd :: Int -> Int -> ValT StdVD
+intTEqAdd x y = DsT IntT (RefAnd (RefAtom $ GEQ (IntAddObj (Literal x) (Literal y)))
+                                 (RefAtom $ LEQ (IntAddObj (Literal x) (Literal y))))
 
 intV :: (CompDomain e StdVD) => Int -> Val e StdVD
 intV = DsV . IntConst

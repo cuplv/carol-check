@@ -37,14 +37,14 @@ data (RefDomain d) => ExV d =
   ExV ExIdV (Maybe (ValT d))
   deriving (Eq,Ord)
 
-instance (RefDomain d, Pretty d, Pretty (DRef d)) => Pretty (ExV d) where
+instance (RefDomain d, Pretty d, Pretty (DRef d), Pretty (ISort d)) => Pretty (ExV d) where
   pretty (ExV e Nothing) = pretty e
   pretty (ExV e (Just vt)) = pretty e ++ "=" ++ pretty vt
 
 -- | Existential variable declaration/binding for computation types.
 data ExC d = ExC ExIdC (Maybe (CompT d)) deriving (Eq,Ord)
 
-instance (RefDomain d, Pretty d, Pretty (DRef d)) => Pretty (ExC d) where
+instance (RefDomain d, Pretty d, Pretty (DRef d), Pretty (ISort d)) => Pretty (ExC d) where
   pretty (ExC e Nothing) = pretty e
   pretty (ExC e (Just mt)) = pretty e ++ "=" ++ pretty mt
 

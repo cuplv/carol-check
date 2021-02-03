@@ -22,7 +22,7 @@ data TypeError d =
   | TOther String
   deriving (Eq,Ord)
 
-instance (RefDomain d, Pretty d, Pretty (DRef d))
+instance (RefDomain d, Pretty d, Pretty (DRef d), Pretty (ISort d))
     => Pretty (TypeError d) where
   pretty (TMismatch vt1 vt2) = 
     pretty vt1 ++ " does not satisfy " ++ pretty vt2

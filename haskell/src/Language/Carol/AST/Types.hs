@@ -50,7 +50,7 @@ data (RefDomain d) => ValT d =
 deriving instance (Show d, RefDomain d, Show (DRef d), Show (ISort d))
     => Show (ValT d)
 
-instance (RefDomain d, Pretty d, Pretty (DRef d))
+instance (RefDomain d, Pretty d, Pretty (DRef d), Pretty (ISort d))
     => Pretty (ValT d) where
   pretty = \case
     ThunkT mt -> "U(" ++ pretty mt ++ ")"
@@ -105,13 +105,14 @@ fori n s c = Idx (IVarId n) s c
 deriving instance (Show d, RefDomain d, Show (DRef d), Show (ISort d))
     => Show (CompT d)
 
-instance (RefDomain d, Pretty d, Pretty (DRef d))
+instance (RefDomain d, Pretty d, Pretty (DRef d), Pretty (ISort d))
     => Pretty (CompT d) where
   pretty = \case
     RetT vt -> "F(" ++ pretty vt ++ ")"
     ProdT mp -> "Π(" ++ "..." ++ ")"
     FunT vt mt' -> pretty vt ++ " → " ++ pretty mt'
     ExCT e -> pretty e
+    Idx a s mt' -> "π " ++ pretty a ++ ":" ++ pretty s ++ ". " ++ pretty mt'
 
 
 baseTypeC :: (RefDomain d) => CompT d -> CompT d

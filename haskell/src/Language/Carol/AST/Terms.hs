@@ -49,7 +49,7 @@ data (CompDomain e d) => Val e d =
   | Anno (Val e d) (ValT d)
   deriving (Eq,Ord)
 
-instance (Pretty d, Pretty (DRef d), CompDomain e d) 
+instance (Pretty d, Pretty (DRef d), CompDomain e d, Pretty (ISort d)) 
     => Pretty (Val e d) where
   pretty = \case
     Var i -> pretty i
@@ -97,7 +97,7 @@ data (CompDomain e d) => Comp e d =
 sha :: (Pretty a, Pretty b) => (a,b) -> String
 sha (x,m') = pretty x ++ "| " ++ pretty m'
 
-instance (Pretty d, Pretty (DRef d), CompDomain e d) 
+instance (Pretty d, Pretty (DRef d), CompDomain e d, Pretty (ISort d)) 
     => Pretty (Comp e d) where
   pretty = \case
     Ret v -> "return " ++ pretty v
