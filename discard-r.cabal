@@ -20,12 +20,14 @@ library
                      , Language.Carol.AST.Refinement
                      , Language.Carol.AST.Types.ExVars
                      , Language.Carol.TypeCheck.Context
+                     , Language.Carol.TypeCheck.Context.Base
                      , Language.Carol.TypeCheck.Error
                      , Language.Carol.TypeCheck.Inst
                      , Language.Carol.TypeCheck.SubCheck
   -- other-extensions:
   build-depends:       base >=4.13 && <4.15
                      , containers
+                     , microlens-platform >=0.4.1 && <0.5
                      , mtl
                      , parsec
                      , sbv >=8.7 && <8.10
