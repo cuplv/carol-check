@@ -23,14 +23,12 @@ module Language.Carol.TypeCheck.Context.Base
 
 import Language.Carol.AST.Types
 import Language.Carol.AST.Types.ExVars
-import Language.Carol.Prelude.Types
+import Language.Carol.Prelude.Internal
 import Language.Carol.TypeCheck.Error
 
-import Control.Monad.State
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.SBV
-import Lens.Micro.Platform
 
 -- | Existential variable declaration/binding for value types.
 data (RefDomain d) => ExV d =

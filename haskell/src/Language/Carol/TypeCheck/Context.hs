@@ -1,9 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE RankNTypes #-}
--- {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE UndecidableInstances #-}
-
 module Language.Carol.TypeCheck.Context
   ( Context
   , emptyContext
@@ -13,6 +7,7 @@ module Language.Carol.TypeCheck.Context
 import Language.Carol.AST.Types (CompT)
 import Language.Carol.AST.Refinement
 import qualified Language.Carol.TypeCheck.Context.Base as CB
+import qualified Language.Carol.TypeCheck.Context.Index as CI
 import Language.Carol.TypeCheck.Error
 
 import Lens.Micro.Platform (lens,Lens')

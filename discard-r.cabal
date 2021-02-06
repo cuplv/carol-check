@@ -25,6 +25,7 @@ library
                      , Language.Carol.Prelude.Types
                      , Language.Carol.TypeCheck.Context
                      , Language.Carol.TypeCheck.Context.Base
+                     , Language.Carol.TypeCheck.Context.Index
                      , Language.Carol.TypeCheck.Error
                      , Language.Carol.TypeCheck.Inst
                      , Language.Carol.TypeCheck.SubCheck
