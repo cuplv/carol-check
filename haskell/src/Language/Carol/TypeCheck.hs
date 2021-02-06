@@ -9,118 +9,118 @@ module Language.Carol.TypeCheck
   , TypeError
   , Context
   , emptyContext
-  , substC
+  , substC'
+  , base
   ) where
 
-import Control.Monad (foldM)
 import Language.Carol.AST
 import Language.Carol.TypeCheck.Context
+import qualified Language.Carol.TypeCheck.Context.Base as CB
 import Language.Carol.TypeCheck.Error
 import Language.Carol.TypeCheck.SubCheck
 
+import Control.Monad (foldM)
+import Control.Monad.State
 import Data.Map (Map)
 import qualified Data.Map as M
+import Lens.Micro.Platform
 
 checkV :: (CompDomain e d)
   => Val e d
   -> ValT d
-  -> Context d
-  -> TErr d (Context d)
-checkV v vt g = do
-  (vt1,g1) <- synthV v g
-  subCheckV vt1 vt g1
+  -> StateT (Context d) (TErr d) ()
+checkV v vt = do
+  vt1 <- synthV v
+  subCheckV vt1 vt
 
 synthV :: (CompDomain e d)
   => Val e d
-  -> Context d
-  -> TErr d (ValT d, Context d)
-synthV v g = case v of
-  Var x -> case isBound x g of
-    Just t -> return (t,g)
-    Nothing -> terr $ TOther ("Unbound variable \""
-                              ++ show x ++ "\"")
+  -> StateT (Context d) (TErr d) (ValT d)
+synthV v = case v of
+  Var x -> do
+    g <- use base
+    case CB.isBound x g of
+      Just t -> return t
+      Nothing -> lift.terr $ TOther ("Unbound variable \""
+                                     ++ show x ++ "\"")
   Thunk m -> undefined
   Sum sc i v' -> case M.lookup i sc of
-    Just vt -> checkV v' vt g >>= \g' -> return (SumT sc, g')
-    Nothing -> terr  $ TOther ("Sum, " ++ show i
-                               ++ " not in alts.")
-  Unit -> return (UnitT, g)
+    Just vt -> checkV v' vt >> return (SumT sc)
+    Nothing -> lift.terr $ TOther ("Sum, " ++ show i
+                                   ++ " not in alts.")
+  Unit -> return UnitT
   Pair v1 v2 -> do
-    (vt1,g1) <- synthV v1 g
-    (vt2,g2) <- synthV v2 g1
-    return (PairT vt1 vt2, g2)
+    vt1 <- synthV v1
+    vt2 <- synthV v2
+    return (PairT vt1 vt2)
   DsV dv -> let (d,r) = dValType dv
-            in return (DsT d r, g)
-  Anno v1 vt -> do
-    g1 <- checkV v1 vt g
-    return (vt, g1)
+            in return (DsT d r)
+  Anno v1 vt -> checkV v1 vt >> return vt
 
 checkC :: (CompDomain e d)
   => Comp e d
   -> CompT d
-  -> Context d
-  -> TErr d (Context d)
-checkC m mt2 g = do
-  (mt1,g1) <- synthC m g
-  mt1s <- substC g1 mt1
-  mt2s <- substC g1 mt2
-  g2 <- subCheckC mt1s mt2s g1
-  return g2
+  -> StateT (Context d) (TErr d) ()
+checkC m mt2 = do
+  mt1 <- synthC m
+  mt1s <- substC' base mt1
+  mt2s <- substC' base mt2
+  subCheckC mt1s mt2s
 
 synthC :: (CompDomain e d)
   => Comp e d
-  -> Context d
-  -> TErr d (CompT d, Context d)
-synthC m g = case m of
+  -> StateT (Context d) (TErr d) (CompT d)
+synthC m = case m of
   Ret v -> do
-    (vt,g1) <- synthV v g
-    return (RetT vt, g1)
+    vt <- synthV v
+    return (RetT vt)
   Prod parts -> undefined
   Fun (x,m') -> do
-    let (g1,a) = newExV g
-    let (g2,b) = newExC g1
-    g3 <- checkC m' (ExCT b) (varBind x (ExVT a) g2)
-    g4 <- trimToVar x g3
-    return (FunT (ExVT a) (ExCT b), g4)
-  Let v abs -> synthC (Ap v (Fun abs)) g
+    g <- use base
+    let (g1,a) = CB.newExV g
+    let (g2,b) = CB.newExC g1
+    base .= g2
+
+    base %= CB.varBind x (ExVT a)
+    checkC m' (ExCT b)
+    base %>= CB.trimToVar x
+    -- g4 <- trimToVar x g3
+    return (FunT (ExVT a) (ExCT b))
+  Let v abs -> synthC (Ap v (Fun abs))
   Bind m1 abs -> do
-    (ft,g1) <- synthC (Fun abs) g
+    ft <- synthC (Fun abs)
     case ft of
       FunT vt mt2 -> do
-        (mt1,g2) <- synthC m1 g1
-        g3 <- subCheckC mt1 (RetT vt) g2
-        return (mt2, g3)
-      _ -> terr $ TOther "Fun did not typecheck as FunT?"
+        mt1 <- synthC m1
+        subCheckC mt1 (RetT vt)
+        return mt2
+      _ -> lift.terr $ TOther "Fun did not typecheck as FunT?"
   Force v -> undefined
   Pmp v (x,y,m') -> undefined
   Pms v alts -> undefined
   Proj i m' -> undefined
   Ap v m -> do
-    (mt,g1) <- synthC m g
-    mt' <- substC g1 mt
-    appSynth mt' v g1
+    mt <- synthC m
+    mt' <- substC' base mt
+    appSynth mt' v
   DsC d v (mx,m') -> do
     let (vars,vt,outVT) = dCompSigR d
-    let g1 = foldr (\(a,s) -> exIdx a s) g vars
+    base %= (\g -> foldr (\(a,s) -> CB.exIdx a s) g vars)
     -- Here, we don't replace the index variables in vt with our
     -- existentially quantified vars, because they are the same.  To
     -- avoid namespace collisions, we should actually generate fresh
     -- existential vars and then replace them accordingly.
-    g2 <- checkV v vt g1
+    checkV v vt
     -- g1 <- foldM (\g (v,vt) -> checkV v vt g) g (zip vs vts)
     case mx of
-      Just x -> synthC m' (varBind x outVT g2)
-      Nothing -> synthC m' g2
-  AnnoC m mt -> do
-    g1 <- checkC m mt g
-    return (mt,g1)
+      Just x -> base %= CB.varBind x outVT
+      Nothing -> return ()
+    synthC m'
+  AnnoC m mt -> checkC m mt >> return mt
 
-appSynth :: (CompDomain e d) 
-         => CompT d 
-         -> Val e d 
-         -> Context d 
-         -> TErr d (CompT d,Context d)
-appSynth mt v g = case mt of
-  FunT vt mt' -> do 
-    g1 <- checkV v vt g
-    return (mt',g1)
+appSynth :: (CompDomain e d)
+         => CompT d
+         -> Val e d
+         -> StateT (Context d) (TErr d) (CompT d)
+appSynth mt v = case mt of
+  FunT vt mt' -> checkV v vt >> return mt'

@@ -4,7 +4,7 @@ module Language.Carol.TypeCheck.Inst
   ) where
 
 import Language.Carol.AST.Types
-import Language.Carol.TypeCheck.Context (modifyM)
+import Language.Carol.TypeCheck.Context (modifyM,substC')
 import Language.Carol.TypeCheck.Context.Base
 import Language.Carol.TypeCheck.Error
 
@@ -33,7 +33,7 @@ instRC mt b = case mt of
     (aNew,bNew) <- inb42' b
     instLV aNew vt
 
-    mt'' <- substC' mt'
+    mt'' <- substC' id mt'
     instRC mt'' bNew
   mt -> modifyM $ bindExC b mt
 
@@ -45,8 +45,8 @@ inb42' b = do g <- get
               put g'
               return (aNew,bNew)
 
-substC' :: (RefDomain d)
-        => CompT d
-        -> StateT (Context d) (TErr d) (CompT d)
-substC' mt = do g <- get
-                lift $ substC g mt
+-- substC' :: (RefDomain d)
+--         => CompT d
+--         -> StateT (Context d) (TErr d) (CompT d)
+-- substC' mt = do g <- get
+--                 lift $ substC g mt

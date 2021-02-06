@@ -5,6 +5,7 @@ import Language.Carol.Parse
 import Language.Carol.TypeCheck
 
 import Control.Monad.Except
+import Control.Monad.State
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -168,8 +169,9 @@ unitTests = testGroup "Unit tests"
 
 closedCompT :: Comp' -> TErr StdVD CompT'
 closedCompT comp = do
-  (mt,g) <- synthC comp emptyContext
-  substC g mt
+  evalStateT (substC' base =<< synthC comp) emptyContext
+  -- (mt,g) <- synthC comp emptyContext
+  -- substC g mt
 
 checks :: IO Comp' -> Assertion
 checks em = do
@@ -189,25 +191,25 @@ misses' pred em = do
     Left e -> assertFailure $ "Wrong kind of check failure: " ++ pretty e
     Right t -> assertFailure $ "Should have failed, but got " ++ pretty t
 
-typeCase :: String -> String -> CompT' -> TestTree
-typeCase name s t =
-  testCase name $ (t @=?) =<< (baseTypeC <$> typeOf s)
+-- typeCase :: String -> String -> CompT' -> TestTree
+-- typeCase name s t =
+--   testCase name $ (t @=?) =<< (baseTypeC <$> typeOf s)
 
-refTypeCase :: String -> String -> CompT' -> TestTree
-refTypeCase name s t =
-  testCase name $ (t @=?) =<< typeOf s
+-- refTypeCase :: String -> String -> CompT' -> TestTree
+-- refTypeCase name s t =
+--   testCase name $ (t @=?) =<< typeOf s
 
-typeOf :: String -> IO CompT'
-typeOf m = do
-  prog <- pComp m
-  result <- runExceptT $ synthC prog emptyContext
-  case result of
-    Right (mt,g) -> do
-      r' <- runExceptT $ substC g mt
-      case r' of
-        Right mt' -> return mt'
-        Left e -> assertFailure (pretty e)
-    Left e -> assertFailure (pretty e)
+-- typeOf :: String -> IO CompT'
+-- typeOf m = do
+--   prog <- pComp m
+--   result <- runExceptT $ synthC prog emptyContext
+--   case result of
+--     Right (mt,g) -> do
+--       r' <- runExceptT $ substC g mt
+--       case r' of
+--         Right mt' -> return mt'
+--         Left e -> assertFailure (pretty e)
+--     Left e -> assertFailure (pretty e)
 
 pComp :: String -> IO Comp'
 pComp s = case parseComp s of

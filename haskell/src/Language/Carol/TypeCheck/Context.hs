@@ -6,16 +6,19 @@
 
 module Language.Carol.TypeCheck.Context
   ( Context
-  , empty
+  , emptyContext
   , base
   , onBase
   , Base.VarId
   , modifyM
   , (%>=)
+  , substC'
   ) where
 
+import Language.Carol.AST.Types (CompT)
 import Language.Carol.AST.Refinement
 import qualified Language.Carol.TypeCheck.Context.Base as Base
+import Language.Carol.TypeCheck.Error
 
 import Control.Monad.State
 import Lens.Micro.Platform
@@ -39,5 +42,12 @@ onBase :: (Functor m, RefDomain d)
        -> m (Context d)
 onBase = traverseOf base
 
-empty :: (RefDomain d) => Context d
-empty = Context Base.emptyContext
+emptyContext :: (RefDomain d) => Context d
+emptyContext = Context Base.emptyContext
+
+substC' :: (RefDomain d)
+        => Getting (Base.Context d) s (Base.Context d)
+        -> CompT d
+        -> StateT s (TErr d) (CompT d)
+substC' l mt = do g <- use l
+                  lift $ Base.substC g mt
