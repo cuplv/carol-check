@@ -12,13 +12,17 @@ extra-source-files:  CHANGELOG.md, README.md
 library
   exposed-modules:     Language.Carol.AST
                      , Language.Carol.Parse
+                     , Language.Carol.Prelude
                      , Language.Carol.TypeCheck
-  other-modules:       Language.Carol.AST.PrettyPrint
-                     , Language.Carol.AST.Terms
+  other-modules:       Language.Carol.AST.Terms
                      , Language.Carol.AST.Types
                      , Language.Carol.AST.Domain
                      , Language.Carol.AST.Refinement
                      , Language.Carol.AST.Types.ExVars
+                     , Language.Carol.Prelude.Internal
+                     , Language.Carol.Prelude.Lens
+                     , Language.Carol.Prelude.State
+                     , Language.Carol.Prelude.Types
                      , Language.Carol.TypeCheck.Context
                      , Language.Carol.TypeCheck.Context.Base
                      , Language.Carol.TypeCheck.Error

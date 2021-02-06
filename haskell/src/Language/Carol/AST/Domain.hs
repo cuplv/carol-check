@@ -25,9 +25,9 @@ module Language.Carol.AST.Domain
   , CompT'
   ) where
 
-import Language.Carol.AST.PrettyPrint
 import Language.Carol.AST.Terms
 import Language.Carol.AST.Types
+import Language.Carol.Prelude.Types
 
 import Data.Map (Map)
 import qualified Data.Map as M

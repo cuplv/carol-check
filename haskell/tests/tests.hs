@@ -2,10 +2,9 @@ module Main where
 
 import Language.Carol.AST
 import Language.Carol.Parse
+import Language.Carol.Prelude
 import Language.Carol.TypeCheck
 
-import Control.Monad.Except
-import Control.Monad.State
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -68,46 +67,6 @@ unitTests = testGroup "Unit tests"
          "{=3}` return {=1} to x| |y| return (y,x)"
          |:- RetT (PairT unit3T unit1T))
      ]
-  -- ,testGroup "Specials"
-  --    [typeCase
-  --       "Query"
-  --       "query LEQ as x| 5` |y| return (y,x)"
-  --       (RetT (PairT intT intT))
-  --    ,typeCase
-  --       "Issue"
-  --       "issue +2 | return {=}"
-  --       (RetT UnitT)
-  --    ,typeCase
-  --       "Produce"
-  --       "produce +2 | return {=}"
-  --       (RetT UnitT)
-  --    ,typeCase
-  --       "Consume"
-  --       "consume +2 | return {=}"
-  --       (RetT UnitT)
-  --    ,typeCase
-  --       "ModIn1"
-  --       "mod +1 <- 5 as x| True` |x| return x"
-  --       (RetT boolT)
-  --    ,typeCase
-  --       "ModIn2"
-  --       "True` mod +1 <- 5 as x| |x| return x"
-  --       (RetT boolT)
-  --    ,typeCase
-  --       "ModOut"
-  --       "True` |x| (mod +1 <- 5 as x| return {=}) to y| return x"
-  --       (RetT boolT)
-  --    ,typeCase
-  --       "String"
-  --       "return \"Hello\\nWorld!\""
-  --       (RetT stringT)
-  --    ,testCase "GetString"
-  --     . checks
-  --     $ "strget as x| strcat x, x as y| return y" |:- RetT stringT
-  --    ,testCase "PutString"
-  --     . checks
-  --     $ "\"Hi.\" ` |x| strput x | return {=}" |:- RetT UnitT
-  --    ]
   ,testGroup "Sub" $
      let t n c m = testCase n . c $ m
      in [t "SimpleRange1" 
@@ -167,15 +126,9 @@ unitTests = testGroup "Unit tests"
 (|:-) :: String -> CompT' -> IO Comp'
 (|:-) s mt = pComp s >>= (\m -> m -:- mt)
 
-closedCompT :: Comp' -> TErr StdVD CompT'
-closedCompT comp = do
-  evalStateT (substC' base =<< synthC comp) emptyContext
-  -- (mt,g) <- synthC comp emptyContext
-  -- substC g mt
-
 checks :: IO Comp' -> Assertion
 checks em = do
-  result <- runExceptT . closedCompT =<< em
+  result <- runTErr . closedC =<< em
   case result of
     Right _ -> return ()
     Left e -> assertFailure (pretty e)
@@ -185,31 +138,11 @@ misses = misses' (const True)
 
 misses' :: (TypeError StdVD -> Bool) -> IO Comp' -> Assertion
 misses' pred em = do
-  result <- runExceptT . closedCompT =<< em
+  result <- runTErr . closedC =<< em
   case result of
     Left e | pred e -> return ()
     Left e -> assertFailure $ "Wrong kind of check failure: " ++ pretty e
     Right t -> assertFailure $ "Should have failed, but got " ++ pretty t
-
--- typeCase :: String -> String -> CompT' -> TestTree
--- typeCase name s t =
---   testCase name $ (t @=?) =<< (baseTypeC <$> typeOf s)
-
--- refTypeCase :: String -> String -> CompT' -> TestTree
--- refTypeCase name s t =
---   testCase name $ (t @=?) =<< typeOf s
-
--- typeOf :: String -> IO CompT'
--- typeOf m = do
---   prog <- pComp m
---   result <- runExceptT $ synthC prog emptyContext
---   case result of
---     Right (mt,g) -> do
---       r' <- runExceptT $ substC g mt
---       case r' of
---         Right mt' -> return mt'
---         Left e -> assertFailure (pretty e)
---     Left e -> assertFailure (pretty e)
 
 pComp :: String -> IO Comp'
 pComp s = case parseComp s of

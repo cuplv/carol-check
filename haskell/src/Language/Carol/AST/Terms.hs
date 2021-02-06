@@ -13,14 +13,14 @@ module Language.Carol.AST.Terms
   , unit3
   , Comp (..)
   , CompDomain (..)
-  , VarId (..)
+  , VarId
   ) where
 
 import Data.Map (Map)
 import qualified Data.Map as M
 
-import Language.Carol.AST.PrettyPrint
 import Language.Carol.AST.Types
+import Language.Carol.Prelude.Types
 
 class (RefDomain d, Eq (DVal d), Ord (DVal d))
     => ValDomain d where
@@ -30,14 +30,6 @@ class (RefDomain d, Eq (DVal d), Ord (DVal d))
 class (ValDomain d) => CompDomain e d where
   dCompSigR :: e -> ([(IVarId, ISort d)], ValT d, ValT d)
   dCompPretty :: e -> Val e d -> String
-
-newtype VarId = VarId String deriving (Eq,Ord)
-
-instance Show VarId where
-  show (VarId s) = s
-
-instance Pretty VarId where
-  pretty = show
 
 data (CompDomain e d) => Val e d =
     Var VarId

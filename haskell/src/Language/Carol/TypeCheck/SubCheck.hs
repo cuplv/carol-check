@@ -2,11 +2,10 @@ module Language.Carol.TypeCheck.SubCheck where
 
 import Data.SBV
 import Control.Monad.IO.Class
-import Control.Monad.State
-import Lens.Micro.Platform
 
 import Language.Carol.AST.Refinement
 import Language.Carol.AST.Types
+import Language.Carol.Prelude.Internal
 import Language.Carol.TypeCheck.Context
 import qualified Language.Carol.TypeCheck.Context.Base as CB
 import Language.Carol.TypeCheck.Inst
@@ -57,10 +56,8 @@ subCheckC mt1 mt2 = case (mt1,mt2) of
   -- { <:--> }
   (FunT xt1 rt1, FunT xt2 rt2) -> do
     subCheckV xt1 xt2
-    g <- use base
-    rt1' <- lift $ CB.substC g rt1
-    rt2' <- lift $ CB.substC g rt2
+    rt1' <- CB.substC' base rt1
+    rt2' <- CB.substC' base rt2
     subCheckC rt1' rt2'
   -- InstantiateR (for all InstR rules except InstRSolve)
-  -- (mt,ExCT b) -> onBase (instRC mt b) g
   (mt,ExCT b) -> zoom base $ instRC mt b

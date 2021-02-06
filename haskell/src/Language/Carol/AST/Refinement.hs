@@ -8,19 +8,13 @@ module Language.Carol.AST.Refinement
   ( Refinement (..)
   , RefDomain (..)
   , rpred
-  , IVarId (..)
+  , IVarId
   ) where
 
 import Data.SBV
 import Data.Map (Map)
 
-import Language.Carol.AST.PrettyPrint
-
-newtype IVarId = IVarId String deriving (Show,Eq,Ord)
-
-instance Pretty IVarId where
-  pretty (IVarId s) = s
-
+import Language.Carol.Prelude.Types
 
 class (Eq d, Eq (DRef d), Eq (ISort d), Ord d, Ord (DRef d), Ord (ISort d))
     => RefDomain d where

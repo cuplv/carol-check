@@ -7,7 +7,7 @@ module Language.Carol.AST.Types.ExVars
   , ExIdC (..)
   ) where
 
-import Language.Carol.AST.PrettyPrint
+import Language.Carol.Prelude.Types
 
 data ExTypeId =
   ExTypeId Int (Maybe ExTypeId)

@@ -16,20 +16,21 @@ module Language.Carol.TypeCheck.Context.Base
   , trimToVar
   , substV
   , substC
+  , substC'
   , inb42
   , quantifyContext
-  , VarId
   ) where
 
-import Language.Carol.AST.PrettyPrint
-import Language.Carol.AST.Terms (VarId)
 import Language.Carol.AST.Types
 import Language.Carol.AST.Types.ExVars
+import Language.Carol.Prelude.Types
 import Language.Carol.TypeCheck.Error
 
+import Control.Monad.State
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.SBV
+import Lens.Micro.Platform
 
 -- | Existential variable declaration/binding for value types.
 data (RefDomain d) => ExV d =
@@ -206,6 +207,13 @@ substC g = \case
     ExUnBoundC -> return $ ExCT b
     ExNonExistC -> terr $ TOther "SubstC failed; missing comp-exvar."
   Idx a s m -> Idx a s <$> substC g m
+
+substC' :: (RefDomain d)
+        => Getting (Context d) s (Context d)
+        -> CompT d
+        -> StateT s (TErr d) (CompT d)
+substC' l mt = do g <- use l
+                  lift $ substC g mt
 
 onSnd :: (a -> b) -> (c1,c2,a) -> (c1,c2,b)
 onSnd f (c1,c2,a) = (c1,c2,f a)

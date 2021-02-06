@@ -1,4 +1,4 @@
-module Language.Carol.AST.PrettyPrint
+module Language.Carol.Prelude.PrettyPrint
   ( Pretty (..)
   ) where
 

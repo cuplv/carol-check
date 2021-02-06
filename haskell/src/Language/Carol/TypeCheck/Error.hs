@@ -3,14 +3,15 @@
 
 module Language.Carol.TypeCheck.Error
   ( TErr
+  , runTErr
   , terr
   , TypeError (..)
   ) where
 
 import Control.Monad.Except
 
-import Language.Carol.AST.PrettyPrint
 import Language.Carol.AST.Types
+import Language.Carol.Prelude.Types
 
 type TErr d = ExceptT (TypeError d) IO
 
@@ -27,3 +28,6 @@ instance (RefDomain d, Pretty d, Pretty (DRef d), Pretty (ISort d))
   pretty (TMismatch vt1 vt2) = 
     pretty vt1 ++ " does not satisfy " ++ pretty vt2
   pretty (TOther s) = "Error: " ++ show s
+
+runTErr :: TErr d a -> IO (Either (TypeError d) a)
+runTErr = runExceptT

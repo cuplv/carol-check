@@ -1,29 +1,27 @@
 {-# LANGUAGE LambdaCase #-}
 
 module Language.Carol.TypeCheck
-  ( checkV
+  ( closedC
+  , checkV
   , synthV
   , checkC
   , synthC
   , TErr
+  , runTErr
   , TypeError
   , Context
-  , emptyContext
-  , substC'
-  , base
   ) where
 
 import Language.Carol.AST
+import Language.Carol.Prelude.Internal
 import Language.Carol.TypeCheck.Context
 import qualified Language.Carol.TypeCheck.Context.Base as CB
 import Language.Carol.TypeCheck.Error
 import Language.Carol.TypeCheck.SubCheck
 
 import Control.Monad (foldM)
-import Control.Monad.State
 import Data.Map (Map)
 import qualified Data.Map as M
-import Lens.Micro.Platform
 
 checkV :: (CompDomain e d)
   => Val e d
@@ -49,10 +47,7 @@ synthV v = case v of
     Nothing -> lift.terr $ TOther ("Sum, " ++ show i
                                    ++ " not in alts.")
   Unit -> return UnitT
-  Pair v1 v2 -> do
-    vt1 <- synthV v1
-    vt2 <- synthV v2
-    return (PairT vt1 vt2)
+  Pair v1 v2 -> PairT <$> synthV v1 <*> synthV v2
   DsV dv -> let (d,r) = dValType dv
             in return (DsT d r)
   Anno v1 vt -> checkV v1 vt >> return vt
@@ -63,17 +58,15 @@ checkC :: (CompDomain e d)
   -> StateT (Context d) (TErr d) ()
 checkC m mt2 = do
   mt1 <- synthC m
-  mt1s <- substC' base mt1
-  mt2s <- substC' base mt2
+  mt1s <- CB.substC' base mt1
+  mt2s <- CB.substC' base mt2
   subCheckC mt1s mt2s
 
 synthC :: (CompDomain e d)
   => Comp e d
   -> StateT (Context d) (TErr d) (CompT d)
 synthC m = case m of
-  Ret v -> do
-    vt <- synthV v
-    return (RetT vt)
+  Ret v -> RetT <$> synthV v
   Prod parts -> undefined
   Fun (x,m') -> do
     g <- use base
@@ -81,10 +74,13 @@ synthC m = case m of
     let (g2,b) = CB.newExC g1
     base .= g2
 
+    -- Try writing a "withBinding" computation that adds a variable,
+    -- does whatever, and the removes the variable before returing.
+    -- That would be less error-prone than adding and removing the
+    -- variable manually.
     base %= CB.varBind x (ExVT a)
     checkC m' (ExCT b)
     base %>= CB.trimToVar x
-    -- g4 <- trimToVar x g3
     return (FunT (ExVT a) (ExCT b))
   Let v abs -> synthC (Ap v (Fun abs))
   Bind m1 abs -> do
@@ -100,9 +96,8 @@ synthC m = case m of
   Pms v alts -> undefined
   Proj i m' -> undefined
   Ap v m -> do
-    mt <- synthC m
-    mt' <- substC' base mt
-    appSynth mt' v
+    mt <- CB.substC' base =<< synthC m
+    appSynth mt v
   DsC d v (mx,m') -> do
     let (vars,vt,outVT) = dCompSigR d
     base %= (\g -> foldr (\(a,s) -> CB.exIdx a s) g vars)
@@ -111,16 +106,21 @@ synthC m = case m of
     -- avoid namespace collisions, we should actually generate fresh
     -- existential vars and then replace them accordingly.
     checkV v vt
-    -- g1 <- foldM (\g (v,vt) -> checkV v vt g) g (zip vs vts)
     case mx of
       Just x -> base %= CB.varBind x outVT
       Nothing -> return ()
     synthC m'
   AnnoC m mt -> checkC m mt >> return mt
 
+-- | Synthesize a type for a closed computation (by running synthC
+-- with an empty context).
+closedC :: (CompDomain e d) => Comp e d -> TErr d (CompT d)
+closedC m = evalStateT (CB.substC' base =<< synthC m) emptyContext
+
 appSynth :: (CompDomain e d)
          => CompT d
          -> Val e d
          -> StateT (Context d) (TErr d) (CompT d)
-appSynth mt v = case mt of
-  FunT vt mt' -> checkV v vt >> return mt'
+appSynth (FunT vt mt') v = checkV v vt >> return mt'
+appSynth _ _ = lift.terr.TOther $
+  "Non-function type given to appSynth."

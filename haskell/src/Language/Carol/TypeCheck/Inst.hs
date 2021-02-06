@@ -4,12 +4,9 @@ module Language.Carol.TypeCheck.Inst
   ) where
 
 import Language.Carol.AST.Types
-import Language.Carol.TypeCheck.Context (modifyM,substC')
+import Language.Carol.Prelude.Internal
 import Language.Carol.TypeCheck.Context.Base
 import Language.Carol.TypeCheck.Error
-
-import Control.Monad.State
-import Lens.Micro.Platform
 
 instLV :: (RefDomain d)
   => ExIdV

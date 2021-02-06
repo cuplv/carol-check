@@ -23,13 +23,13 @@ module Language.Carol.AST.Types
   , baseTypeC
   , RefDomain (..)
   , Refinement (..)
-  , IVarId (..)
+  , IVarId
   , fori
   ) where
 
-import Language.Carol.AST.PrettyPrint
 import Language.Carol.AST.Refinement
 import Language.Carol.AST.Types.ExVars (ExIdV,ExIdC)
+import Language.Carol.Prelude.Types
 
 import Data.Map (Map)
 import qualified Data.Map as M
