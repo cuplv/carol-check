@@ -25,6 +25,7 @@ module Language.Carol.AST.Domain
   , CompT'
   ) where
 
+import Language.Carol.AST.Refinement (AnySym (..))
 import Language.Carol.AST.Terms
 import Language.Carol.AST.Types
 import Language.Carol.Prelude.Types
@@ -105,15 +106,17 @@ instance Pretty IntObject where
 instance RefDomain StdVD where
   data DRef StdVD = LEQ IntObject | GEQ IntObject deriving (Show,Eq,Ord)
   data ISort StdVD = IntS deriving (Show,Eq,Ord)
+  data DRSym StdVD = IntSym SInteger
+  mkSym IntT = RSym . IntSym <$> forall "nu"
   refConstraint m = \case
     LEQ o -> let s = mkobj o
-             in \v -> v .<= s
+             in \(RSym (IntSym v)) -> v .<= s
     GEQ o -> let s = mkobj o
-             in \v -> v .>= s
+             in \(RSym (IntSym v)) -> v .>= s
     where mkobj = \case
             Literal i -> literal (fromIntegral i)
             IntVar a -> case M.lookup a m of
-                          Just x -> x
+                          Just (RSym (IntSym x)) -> x
             IntAddObj o1 o2 -> mkobj o1 + mkobj o2
   subVar a (LEQ (IntVar a')) = if a == a'
                                then LEQ (IntVar a)

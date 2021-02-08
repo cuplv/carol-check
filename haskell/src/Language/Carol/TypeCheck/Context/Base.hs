@@ -21,6 +21,7 @@ module Language.Carol.TypeCheck.Context.Base
   , quantifyContext
   ) where
 
+import Language.Carol.AST.Refinement (AnySym (..))
 import Language.Carol.AST.Types
 import Language.Carol.AST.Types.ExVars
 import Language.Carol.Prelude.Internal
@@ -131,7 +132,9 @@ bindExV a vt g = bindExVR g a vt g
 bindExVR :: (RefDomain d) => Context d -> ExIdV -> ValT d -> Context d -> TErr d (Context d)
 bindExVR g0 a vt = \case
   Empty -> terr $ TOther "Context cannot bind; missing exvar."
-  ExValT (ExV a1    Nothing) g' | a == a1 -> 
+  ExValT (ExV a1    Nothing) g' | a == a1 ->
+    -- Add { nu == a } constraint to vt before inserting into the
+    -- context here.
     return $ ExValT (ExV a1 (Just vt)) g'
   ExValT (ExV a1 (Just vt1)) g' | a == a1 && vt == vt1 -> 
     return $ ExValT (ExV a1 (Just vt1)) g'
@@ -237,16 +240,16 @@ inb42 b = \case
   ExCompT e g' -> onSnd (ExCompT e) <$> inb42 b g'
   VarBind x vt g' -> onSnd (VarBind x vt) <$> inb42 b g'
 
-quantifyContext :: (RefDomain d) => Context d -> Symbolic (Map IVarId SInteger)
+quantifyContext :: (RefDomain d) => Context d -> Symbolic (Map IVarId (AnySym d))
 quantifyContext Empty = return mempty
 quantifyContext (ExValT _ g) = quantifyContext g
 quantifyContext (ExCompT _ g) = quantifyContext g
 quantifyContext (VarBind _ _ g) = quantifyContext g
-quantifyContext (IdxBind (IVarId s) _ g) = do 
-  a <- forall s
-  m <- quantifyContext g
-  return $ M.insert (IVarId s) a m
-quantifyContext (ExIdx (IVarId s) _ g) = do 
-  a <- exists s
-  m <- quantifyContext g
-  return $ M.insert (IVarId s) a m
+-- quantifyContext (IdxBind (IVarId s) _ g) = do 
+--   a <- forall s
+--   m <- quantifyContext g
+--   return $ M.insert (IVarId s) a m
+-- quantifyContext (ExIdx (IVarId s) _ g) = do 
+--   a <- exists s
+--   m <- quantifyContext g
+--   return $ M.insert (IVarId s) a m

@@ -30,7 +30,7 @@ subCheckV vt1 vt2 = case (vt1,vt2) of
   (DsT t1 r1, DsT t2 r2) | t1 == t2 -> do
     g <- use base
     result <- lift . liftIO . isTheorem $ do
-      nu <- forall "nu"
+      nu <- mkSym t1
       m <- CB.quantifyContext g
       return $ rpred m r1 nu .=> rpred m r2 nu
     if result
