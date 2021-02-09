@@ -131,6 +131,14 @@ instance RefDomain StdVD where
   subVar _ (GEQ n) = GEQ n
   eqRef a = RefAnd (RefAtom $ GEQ (IntVar a))
                    (RefAtom $ LEQ (IntVar a))
+  subiDR x y = \case
+    LEQ o -> LEQ $ subiO x y o
+    GEQ o -> GEQ $ subiO x y o
+    where subiO x y = \case
+            IntVar x' | x == x' -> IntVar y
+            IntVar x' -> IntVar x'
+            IntAddObj o1 o2 -> IntAddObj (subiO x y o1) (subiO x y o2)
+            Literal n -> Literal n
 
 intSort = IntS
 

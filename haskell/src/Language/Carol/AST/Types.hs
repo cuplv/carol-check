@@ -21,6 +21,7 @@ module Language.Carol.AST.Types
   , ExIdC
   , baseTypeV
   , baseTypeC
+  , subiC
   , RefDomain (..)
   , Refinement (..)
   , IVarId
@@ -63,6 +64,14 @@ instance (RefDomain d, Pretty d, Pretty (DRef d), Pretty (ISort d))
     DsT t RefTrue -> pretty t
     DsT t r -> "{ ν:" ++ pretty t ++ " | " ++ pretty r ++ " }"
     ExVT e -> pretty e
+
+subiV :: (RefDomain d) => IVarId -> IVarId -> ValT d -> ValT d
+subiV x y = \case
+  ThunkT m -> ThunkT $ subiC x y m
+  SumT mp -> undefined
+  PairT vt1 vt2 -> PairT (subiV x y vt1) (subiV x y vt2)
+  DsT t r -> DsT t (subiR x y r)
+  vt -> vt
 
 baseTypeV :: (RefDomain d) => ValT d -> ValT d
 baseTypeV = \case
@@ -107,6 +116,15 @@ data CompT d =
 
 deriving instance (Eq d, RefDomain d, Eq (ISort d)) => Eq (CompT d)
 deriving instance (Ord d, RefDomain d, Ord (ISort d)) => Ord (CompT d)
+
+subiC :: (RefDomain d) => IVarId -> IVarId -> CompT d -> CompT d
+subiC x y = \case
+  RetT vt -> RetT $ subiV x y vt
+  ProdT mp -> undefined
+  -- FunT (Just (VarId x')) vt mt | x == IVarId x' -> 
+  --                                FunT (Just (VarId x')) vt mt
+  FunT mx vt mt -> FunT mx (subiV x y vt) (subiC x y mt)
+  mt -> mt
 
 funT = FunT Nothing
 

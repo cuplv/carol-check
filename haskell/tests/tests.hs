@@ -101,24 +101,17 @@ unitTests = testGroup "Unit tests"
                          (intTEq (IVarId "x"))
                          (RetT (PairT (intTEq (IVarId "x")) UnitT))
            in "|x| return (5,{=})" |:- t
-        ,testCase "FunType3a"
+        ,testCase "FunType4"
          . checks
          $ let t = funTR (VarId "x")
                          intT
                          (RetT (PairT (intTEq (IVarId "x")) UnitT))
            in "|x| return (x,{=})" |:- t
-        ,testCase "FunType3am"
+        ,testCase "FunType4m"
          . misses
          $ let t = funTR (VarId "x")
                          intT
                          (RetT (PairT (intTEq (IVarId "x")) UnitT))
-           in "|x| return (5,{=})" |:- t
-        ,testCase "FunType4"
-         . misses
-         $ let t = fori "ax"
-                        intSort
-                        (funT (intTEq (IVarId "ax"))
-                              (RetT (PairT (intTEq (IVarId "ax")) UnitT)))
            in "|x| return (5,{=})" |:- t
         ]
   ,testGroup "CompSub"

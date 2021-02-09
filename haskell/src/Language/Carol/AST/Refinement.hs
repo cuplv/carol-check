@@ -8,6 +8,7 @@ module Language.Carol.AST.Refinement
   ( AnySym (..)
   , Refinement (..)
   , RefDomain (..)
+  , subiR
   , rpred
   , IVarId
   ) where
@@ -28,6 +29,7 @@ class (Eq d, Eq (DRef d), Eq (ISort d), Ord d, Ord (DRef d), Ord (ISort d))
   subVar :: IVarId -> DRef d -> DRef d
   mkSym :: String -> d -> SymbolicT IO (AnySym d)
   eqRef :: IVarId -> Refinement d
+  subiDR :: IVarId -> IVarId -> DRef d -> DRef d
 
 data (RefDomain d) => Refinement d =
     RefTrue
@@ -46,6 +48,11 @@ instance (RefDomain d, Pretty (DRef d))
     RefFalse -> "⊥"
     RefAtom r -> pretty r
     RefAnd r1 r2 -> pretty r1 ++ " ∧ " ++ pretty r2
+
+subiR :: (RefDomain d) => IVarId -> IVarId -> Refinement d -> Refinement d
+subiR x y = \case
+  RefAnd r1 r2 -> RefAnd (subiR x y r1) (subiR x y r2)
+  RefAtom r -> RefAtom $ subiDR x y r
 
 rpred :: (RefDomain d) => Map IVarId (AnySym d, Refinement d) -> Refinement d -> AnySym d -> Either String (SBool)
 rpred m = \case
