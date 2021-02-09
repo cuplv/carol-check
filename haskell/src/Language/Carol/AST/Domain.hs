@@ -107,17 +107,20 @@ instance RefDomain StdVD where
   data DRef StdVD = LEQ IntObject | GEQ IntObject deriving (Show,Eq,Ord)
   data ISort StdVD = IntS deriving (Show,Eq,Ord)
   data DRSym StdVD = IntSym SInteger
-  mkSym IntT = RSym . IntSym <$> forall "nu"
+  mkSym s IntT = RSym . IntSym <$> forall s
   refConstraint m = \case
-    LEQ o -> let s = mkobj o
-             in \(RSym (IntSym v)) -> v .<= s
-    GEQ o -> let s = mkobj o
-             in \(RSym (IntSym v)) -> v .>= s
+    LEQ o -> do s <- mkobj o
+                return (\(RSym (IntSym v)) -> v .<= s)
+    GEQ o -> do s <- mkobj o
+                return (\(RSym (IntSym v)) -> v .>= s)
     where mkobj = \case
-            Literal i -> literal (fromIntegral i)
+            Literal i -> Right $ literal (fromIntegral i)
             IntVar a -> case M.lookup a m of
-                          Just (RSym (IntSym x)) -> x
-            IntAddObj o1 o2 -> mkobj o1 + mkobj o2
+                          Just (RSym (IntSym x),_) -> Right x
+                          _ -> Left $ "No context for " ++ pretty a ++ " in " ++ show (pretty <$> M.keys m)
+            IntAddObj o1 o2 -> do a <- mkobj o1 
+                                  b <- mkobj o2
+                                  return (a + b)
   subVar a (LEQ (IntVar a')) = if a == a'
                                then LEQ (IntVar a)
                                else LEQ (IntVar a')
@@ -126,6 +129,8 @@ instance RefDomain StdVD where
                                then GEQ (IntVar a)
                                else GEQ (IntVar a')
   subVar _ (GEQ n) = GEQ n
+  eqRef a = RefAnd (RefAtom $ GEQ (IntVar a))
+                   (RefAtom $ LEQ (IntVar a))
 
 intSort = IntS
 

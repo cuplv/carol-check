@@ -1,5 +1,6 @@
 module Language.Carol.TypeCheck.SubCheck where
 
+import qualified Data.Map as Map
 import Data.SBV
 import Control.Monad.IO.Class
 
@@ -30,12 +31,34 @@ subCheckV vt1 vt2 = case (vt1,vt2) of
   (DsT t1 r1, DsT t2 r2) | t1 == t2 -> do
     g <- use base
     result <- lift . liftIO . isTheorem $ do
-      nu <- mkSym t1
+      nu <- mkSym "nu" t1
       m <- CB.quantifyContext g
-      return $ rpred m r1 nu .=> rpred m r2 nu
+      pre <- case refs m of
+               Right p -> return p
+               Left e -> do liftIO $ putStrLn e
+                            -- liftIO $ print m
+                            undefined
+      a <- case rpred m r1 nu of
+             Right p -> return p
+             Left e -> do liftIO $ putStrLn e
+                          -- liftIO $ print m
+                          undefined
+      b <- case rpred m r2 nu of
+             Right p -> return p
+             Left e -> do liftIO $ putStrLn e
+                          -- liftIO $ print m
+                          undefined
+      -- return $ refs m .&& rpred m r1 nu .=> rpred m r2 nu
+      return $ pre .&& a .=> b
     if result
        then return ()
        else lift.terr $ TMismatch vt1 vt2
+    where -- AND all the constraints from the
+          -- context, applied to their quantified
+          -- variables (just operate on the values
+          -- of the map).
+          -- refs m = Map.foldr (\(x,r) p -> rpred m r x .&& p) sTrue m
+          refs m = (foldr (.&&) sTrue) <$> mapM (\(x,r) -> rpred m r x) (Map.elems m)
   _ -> lift.terr $ TMismatch vt1 vt2
 
 -- | Check that the first computation type is a subtype of the second

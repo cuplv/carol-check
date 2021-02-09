@@ -24,9 +24,10 @@ class (Eq d, Eq (DRef d), Eq (ISort d), Ord d, Ord (DRef d), Ord (ISort d))
   data DRef d
   data ISort d
   data DRSym d
-  refConstraint :: Map IVarId (AnySym d) -> DRef d -> AnySym d -> SBool
+  refConstraint :: Map IVarId (AnySym d, Refinement d) -> DRef d -> Either String (AnySym d -> SBool)
   subVar :: IVarId -> DRef d -> DRef d
-  mkSym :: d -> SymbolicT IO (AnySym d)
+  mkSym :: String -> d -> SymbolicT IO (AnySym d)
+  eqRef :: IVarId -> Refinement d
 
 data (RefDomain d) => Refinement d =
     RefTrue
@@ -46,9 +47,11 @@ instance (RefDomain d, Pretty (DRef d))
     RefAtom r -> pretty r
     RefAnd r1 r2 -> pretty r1 ++ " ∧ " ++ pretty r2
 
-rpred :: (RefDomain d) => Map IVarId (AnySym d) -> Refinement d -> AnySym d -> SBool
+rpred :: (RefDomain d) => Map IVarId (AnySym d, Refinement d) -> Refinement d -> AnySym d -> Either String (SBool)
 rpred m = \case
-  RefTrue -> const sTrue
-  RefFalse -> const sFalse
-  RefAtom dr -> refConstraint m dr
-  RefAnd r1 r2 -> \nu -> rpred m r1 nu .&& rpred m r2 nu
+  RefTrue -> const (return sTrue)
+  RefFalse -> const (return sFalse)
+  RefAtom dr -> \nu -> refConstraint m dr <*> pure nu
+  RefAnd r1 r2 -> \nu -> do p1 <- rpred m r1 nu
+                            p2 <- rpred m r2 nu
+                            return (p1 .&& p2)

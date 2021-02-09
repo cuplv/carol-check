@@ -25,6 +25,7 @@ module Language.Carol.AST.Types
   , Refinement (..)
   , IVarId
   , fori
+  , addEqRef
   ) where
 
 import Language.Carol.AST.Refinement
@@ -69,6 +70,11 @@ baseTypeV = \case
   PairT vt1 vt2 -> PairT (baseTypeV vt1) (baseTypeV vt2)
   DsT t r -> DsT t RefTrue -- remove refinement
   ExVT e -> ExVT e
+
+addEqRef :: (RefDomain d) => IVarId -> ValT d -> ValT d
+addEqRef a = \case
+  DsT t r -> DsT t $ RefAnd r (eqRef a)
+  t -> t
 
 unitT :: (RefDomain d) => ValT d
 unitT = UnitT
