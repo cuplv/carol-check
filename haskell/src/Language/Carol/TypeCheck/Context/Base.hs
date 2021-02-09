@@ -203,7 +203,7 @@ substC g = \case
     let pl = M.toList pp
     pl' <- mapM (\(i,mt) -> (,) <$> return i <*> substC g mt) pl
     return $ ProdT (M.fromList pl')
-  FunT vt mt -> FunT <$> substV g vt <*> substC g mt
+  FunT mx vt mt -> FunT mx <$> substV g vt <*> substC g mt
   ExCT b -> case existStatusC b g of
     ExBoundC mt -> substC g mt
     ExUnBoundC -> return $ ExCT b
@@ -231,7 +231,7 @@ inb42 b = \case
         aNew = ExIdV (eTmp)
         bNew = ExIdC (exTypeIdNext eTmp)
         gNew = ExCompT
-                 (ExC (ExIdC b1) (Just $ FunT (ExVT aNew) (ExCT bNew)))
+                 (ExC (ExIdC b1) (Just $ FunT Nothing (ExVT aNew) (ExCT bNew)))
                  (ExCompT
                     (ExC bNew Nothing)
                     (ExValT

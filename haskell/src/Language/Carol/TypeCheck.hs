@@ -81,12 +81,12 @@ synthC m = case m of
     base %= CB.varBind x (ExVT a)
     checkC m' (ExCT b)
     base %>= CB.trimToVar x
-    return (FunT (ExVT a) (ExCT b))
+    return (FunT (Just x) (ExVT a) (ExCT b))
   Let v abs -> synthC (Ap v (Fun abs))
   Bind m1 abs -> do
     ft <- synthC (Fun abs)
     case ft of
-      FunT vt mt2 -> do
+      FunT _ vt mt2 -> do
         mt1 <- synthC m1
         subCheckC mt1 (RetT vt)
         return mt2
@@ -121,6 +121,6 @@ appSynth :: (CompDomain e d)
          => CompT d
          -> Val e d
          -> StateT (Context d) (TErr d) (CompT d)
-appSynth (FunT vt mt') v = checkV v vt >> return mt'
+appSynth (FunT _ vt mt') v = checkV v vt >> return mt'
 appSynth _ _ = lift.terr.TOther $
   "Non-function type given to appSynth."

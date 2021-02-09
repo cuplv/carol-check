@@ -26,7 +26,7 @@ instRC mt b = case mt of
   -- InstRReach
   ExCT b1 | b < b1 -> modifyM $ bindExC b1 (ExCT b)
   -- InstRArr
-  FunT vt mt' -> do
+  FunT _ vt mt' -> do
     (aNew,bNew) <- inb42' b
     instLV aNew vt
 

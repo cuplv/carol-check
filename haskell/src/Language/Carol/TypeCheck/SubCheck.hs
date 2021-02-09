@@ -77,9 +77,21 @@ subCheckC mt1 mt2 = case (mt1,mt2) of
   -- { InstantiateL, InstantiateR+InstRSolve, Unit, etc. }
   (RetT vt1, RetT vt2) -> subCheckV vt1 vt2
   -- { <:--> }
-  (FunT xt1 rt1, FunT xt2 rt2) -> do
+  (FunT _ xt1 rt1, FunT (Just x) xt2 rt2) -> do
     -- Look at Dec-<:-Fun from LQ paper to fix this one once argument
     -- refinement vars are added to the FunT.
+    -- 
+    -- It looks like the solution is to replace the variable in one to
+    -- match the other, and then use the weaker argument type to
+    -- verify the bodies.
+    subCheckV xt2 xt1
+
+    base %= CB.varBind x xt2
+    rt1' <- CB.substC' base rt1
+    rt2' <- CB.substC' base rt2
+    subCheckC rt1' rt2'
+    base %>= CB.trimToVar x
+  (FunT _ xt1 rt1, FunT Nothing xt2 rt2) -> do
     subCheckV xt2 xt1
     rt1' <- CB.substC' base rt1
     rt2' <- CB.substC' base rt2

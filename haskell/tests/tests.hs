@@ -22,7 +22,7 @@ unitTests = testGroup "Unit tests"
 
      ,(testCase "Function"
        . checks
-       $ "|asdf1234| return asdf1234 : {}" |:- FunT unitT (RetT unitT))
+       $ "|asdf1234| return asdf1234 : {}" |:- funT unitT (RetT unitT))
 
      ,(testCase "Interleaved Double App"
        . checks
@@ -85,22 +85,39 @@ unitTests = testGroup "Unit tests"
            checks $ "5` |x| return x" |:- RetT (intTR 4 6)
         ,testCase "FunType1"
          . checks
-         $ "|x| return (x,{=})" |:- FunT (intTR 4 6)
+         $ "|x| return (x,{=})" |:- funT (intTR 4 6)
                                          (RetT (PairT (intTR 4 8) UnitT))
         ,t "FunType2"
-           misses $ "|x| return x" |:- FunT (intTR 0 9) (RetT (intTR 4 8))
+           misses $ "|x| return x" |:- funT (intTR 0 9) (RetT (intTR 4 8))
         ,testCase "FunType3"
          . checks
-         $ let t = fori "ax"
-                        intSort
-                        (FunT (intTEq (IVarId "ax"))
-                              (RetT (PairT (intTEq (IVarId "ax")) UnitT)))
+         $ let t = funTR (VarId "x")
+                         (intTEq (IVarId "x"))
+                         (RetT (PairT (intTEq (IVarId "x")) UnitT))
            in "|x| return (x,{=})" |:- t
+        ,testCase "FunType3m"
+         . misses
+         $ let t = funTR (VarId "x")
+                         (intTEq (IVarId "x"))
+                         (RetT (PairT (intTEq (IVarId "x")) UnitT))
+           in "|x| return (5,{=})" |:- t
+        ,testCase "FunType3a"
+         . checks
+         $ let t = funTR (VarId "x")
+                         intT
+                         (RetT (PairT (intTEq (IVarId "x")) UnitT))
+           in "|x| return (x,{=})" |:- t
+        ,testCase "FunType3am"
+         . misses
+         $ let t = funTR (VarId "x")
+                         intT
+                         (RetT (PairT (intTEq (IVarId "x")) UnitT))
+           in "|x| return (5,{=})" |:- t
         ,testCase "FunType4"
          . misses
          $ let t = fori "ax"
                         intSort
-                        (FunT (intTEq (IVarId "ax"))
+                        (funT (intTEq (IVarId "ax"))
                               (RetT (PairT (intTEq (IVarId "ax")) UnitT)))
            in "|x| return (5,{=})" |:- t
         ]

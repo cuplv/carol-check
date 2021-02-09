@@ -34,7 +34,7 @@ funTP = do
   string "->"
   spaces
   mt <- mtypeP
-  return (FunT vt mt)
+  return (funT vt mt)
 
 vtypeP :: Parsec String s (ValT')
 vtypeP = 

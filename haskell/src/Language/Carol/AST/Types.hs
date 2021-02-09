@@ -24,6 +24,8 @@ module Language.Carol.AST.Types
   , RefDomain (..)
   , Refinement (..)
   , IVarId
+  , funT
+  , funTR
   , fori
   , addEqRef
   ) where
@@ -99,12 +101,16 @@ boolT = SumT boolSchema
 data CompT d =
     RetT (ValT d)
   | ProdT (Map ProdId (CompT d))
-  | FunT (ValT d) (CompT d)
+  | FunT (Maybe VarId) (ValT d) (CompT d)
   | Idx IVarId (ISort d) (CompT d)
   | ExCT ExIdC
 
 deriving instance (Eq d, RefDomain d, Eq (ISort d)) => Eq (CompT d)
 deriving instance (Ord d, RefDomain d, Ord (ISort d)) => Ord (CompT d)
+
+funT = FunT Nothing
+
+funTR x = FunT (Just x)
 
 fori n s c = Idx (IVarId n) s c
 
@@ -116,7 +122,9 @@ instance (RefDomain d, Pretty d, Pretty (DRef d), Pretty (ISort d))
   pretty = \case
     RetT vt -> "F(" ++ pretty vt ++ ")"
     ProdT mp -> "Π(" ++ "..." ++ ")"
-    FunT vt mt' -> pretty vt ++ " → " ++ pretty mt'
+    FunT (Just x) vt mt' -> "(" ++ pretty x ++ ":" ++ pretty vt ++ ")" 
+                            ++ " → " ++ pretty mt'
+    FunT Nothing vt mt' -> pretty vt ++ " → " ++ pretty mt'
     ExCT e -> pretty e
     Idx a s mt' -> "π " ++ pretty a ++ ":" ++ pretty s ++ ". " ++ pretty mt'
 
@@ -125,5 +133,5 @@ baseTypeC :: (RefDomain d) => CompT d -> CompT d
 baseTypeC = \case
   RetT vt -> RetT $ baseTypeV vt
   ProdT mp -> ProdT $ M.map baseTypeC mp
-  FunT vt mt -> FunT (baseTypeV vt) (baseTypeC mt)
+  FunT _ vt mt -> FunT Nothing (baseTypeV vt) (baseTypeC mt)
   ExCT e -> ExCT e
