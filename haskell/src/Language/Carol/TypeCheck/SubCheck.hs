@@ -78,7 +78,9 @@ subCheckC mt1 mt2 = case (mt1,mt2) of
   (RetT vt1, RetT vt2) -> subCheckV vt1 vt2
   -- { <:--> }
   (FunT xt1 rt1, FunT xt2 rt2) -> do
-    subCheckV xt1 xt2
+    -- Look at Dec-<:-Fun from LQ paper to fix this one once argument
+    -- refinement vars are added to the FunT.
+    subCheckV xt2 xt1
     rt1' <- CB.substC' base rt1
     rt2' <- CB.substC' base rt2
     subCheckC rt1' rt2'
