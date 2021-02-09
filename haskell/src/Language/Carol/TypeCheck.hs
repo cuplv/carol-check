@@ -99,13 +99,20 @@ synthC m = case m of
     mt <- CB.substC' base =<< synthC m
     appSynth mt v
   DsC d v (mx,m') -> do
-    let (vars,vt,outVT) = dCompSigR d
-    base %= (\g -> foldr (\(a,s) -> CB.exIdx a s) g vars)
+    let ([(IVarId var,sort)],vt,outVT) = dCompSigR d
+    -- base %= (\g -> foldr (\(a,s) -> CB.exIdx a s) g vars)
     -- Here, we don't replace the index variables in vt with our
     -- existentially quantified vars, because they are the same.  To
     -- avoid namespace collisions, we should actually generate fresh
     -- existential vars and then replace them accordingly.
-    checkV v vt
+
+    vt' <- synthV v
+    subCheckV vt' vt
+    base %= CB.varBind (VarId var) vt'
+
+    -- checkV v vt
+    -- base %= CB.varBind (VarId var) vt
+
     case mx of
       Just x -> base %= CB.varBind x outVT
       Nothing -> return ()

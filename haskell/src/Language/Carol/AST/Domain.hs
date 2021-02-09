@@ -192,6 +192,7 @@ intV = DsV . IntConst
 data StdCD =
     IntAdd
   | IntMul
+  | IntInc
   deriving (Show,Eq,Ord)
 
 lsPretty :: (Pretty a) => [a] -> String
@@ -223,6 +224,12 @@ instance CompDomain StdCD StdVD where
                                 (RefAtom $ LEQ (IntAddObj 
                                                   (IntVar$ IVarId "n1")
                                                   (IntVar$ IVarId "n2")))))
+    IntInc -> ([(IVarId "n1", intSort)]
+              ,intT
+              ,DsT IntT (RefAnd (RefAtom $ GEQ (IntAddObj (IntVar$ IVarId "n1")
+                                                          (Literal 1)))
+                                (RefAtom $ LEQ (IntAddObj (IntVar$ IVarId "n1")
+                                                          (Literal 1)))))
 
   -- dCompPretty IntMod vs = "mod " ++ lsPretty vs
   -- dCompPretty IntTest vs = "test " ++ lsPretty vs

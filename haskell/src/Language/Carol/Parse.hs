@@ -79,6 +79,7 @@ compP = do
           ,funP
           ,apP
           ,addP
+          ,incP
           ,parensP compP]
   mxm2 <- optionMaybe (try extBindP)
   case mxm2 of
@@ -103,6 +104,16 @@ addP = do
   spaces >> char '|' >> spaces
   m' <- compP
   return $ DsC IntAdd (Pair arg1 arg2) (Just x,m')
+
+incP :: Parsec String s Comp'
+incP = do
+  string "inc" >> spaces
+  arg1 <- spaces >> valP
+  spaces >> string "as" >> spaces
+  x <- varIdentP
+  spaces >> char '|' >> spaces
+  m' <- compP
+  return $ DsC IntInc arg1 (Just x,m')
 
 -- testP :: Parsec String s Comp'
 -- testP = do

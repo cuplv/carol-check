@@ -115,7 +115,14 @@ unitTests = testGroup "Unit tests"
            in "|x| return (5,{=})" |:- t
         ]
   ,testGroup "CompSub"
-     [(testCase "BaseAdd" . checks $
+     [(testCase "BaseInc" . checks $
+         "inc 1 as x| return x" |:- RetT intT)
+     ,(testCase "RefInc1" . checks $
+         "inc 3 as x| return x" |:- RetT (intTR 4 4))
+     ,(testCase "RefInc2" . checks $
+         "|x| inc x as y| return y" |:- funT (intTR 4 4)
+                                             (RetT (intTR 5 5)))
+     ,(testCase "BaseAdd" . checks $
          "add 1, 3 as x| return x" |:- RetT intT)
      ,(testCase "BaseAddM". misses $
          "add 1, 3 as x| return x" |:- RetT unitT)
