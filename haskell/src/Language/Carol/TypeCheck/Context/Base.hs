@@ -135,8 +135,8 @@ bindExVR g0 a vt = \case
   ExValT (ExV a1    Nothing) g' | a == a1 -> do
     -- Add { nu == a } constraint to vt before inserting into the
     -- context here.
-    let vt' = addEqRef (IVarId $ show a) vt
-    return $ ExValT (ExV a1 (Just vt')) g'
+    -- let vt' = addEqRef (IVarId $ show a) vt
+    return $ ExValT (ExV a1 (Just vt)) g'
   ExValT (ExV a1 (Just vt1)) g' | a == a1 && vt == vt1 -> 
     return $ ExValT (ExV a1 (Just vt1)) g'
   ExValT (ExV a1 (Just vt1)) g' | a == a1 && vt /= vt1 ->

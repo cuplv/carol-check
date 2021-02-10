@@ -35,12 +35,12 @@ synthV :: (CompDomain e d)
   => Val e d
   -> StateT (Context d) (TErr d) (ValT d)
 synthV v = case v of
-  Var x -> do
+  Var (VarId x) -> do
     g <- use base
-    case CB.isBound x g of
-      Just t -> return t
+    case CB.isBound (VarId x) g of
+      Just t -> return (addEqRef (IVarId x) t)
       Nothing -> lift.terr $ TOther ("Unbound variable \""
-                                     ++ show x ++ "\"")
+                                     ++ show (VarId x) ++ "\"")
   Thunk m -> undefined
   Sum sc i v' -> case M.lookup i sc of
     Just vt -> checkV v' vt >> return (SumT sc)
