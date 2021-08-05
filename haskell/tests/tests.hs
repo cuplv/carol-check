@@ -105,8 +105,9 @@ unitTests = testGroup "Unit tests"
          . checks
          $ let t = funTR (VarId "x")
                          intT
+                         -- (intTEq (IVarId "x"))
                          (RetT (PairT (intTEq (IVarId "x")) UnitT))
-           in "|x| return (x,{=})" |:- t
+           in "|y| return (y,{=})" |:- t
         ,testCase "FunType4m"
          . misses
          $ let t = funTR (VarId "x")

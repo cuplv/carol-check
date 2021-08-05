@@ -84,7 +84,7 @@ subCheckC mt1 mt2 = case (mt1,mt2) of
     -- It looks like the solution is to replace the variable in one to
     -- match the other, and then use the stronger argument type to
     -- verify the bodies.
-    subCheckV xt2 xt1
+    subCheckV (addEqRef (IVarId x2) xt2) (addEqRef (IVarId x1) xt1)
 
     base %= CB.varBind (VarId x2) (addEqRef (IVarId x1) xt2)
     rt1' <- CB.substC' base (subiC (IVarId x1) (IVarId x2) rt1)
