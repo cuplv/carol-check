@@ -98,3 +98,4 @@ subCheckC mt1 mt2 = case (mt1,mt2) of
     subCheckC rt1' rt2'
   -- InstantiateR (for all InstR rules except InstRSolve)
   (mt,ExCT b) -> zoom base $ instRC mt b
+  _ -> lift.terr $ TCMismatch mt1 mt2

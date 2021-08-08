@@ -20,7 +20,7 @@ module Language.Carol.AST.Types
   , ExIdV
   , ExIdC
   , baseTypeV
-  , baseTypeC
+  -- , baseTypeC
   , subiC
   , RefDomain (..)
   , Refinement (..)

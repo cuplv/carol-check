@@ -114,6 +114,21 @@ unitTests = testGroup "Unit tests"
                          intT
                          (RetT (PairT (intTEq (IVarId "x")) UnitT))
            in "|x| return (5,{=})" |:- t
+        ,testCase "FunType5"
+        . checks
+        $ let t = funTR (VarId "x")
+                        intT
+                        (RetT (PairT (intTEq (IVarId "x")) UnitT))
+          in "|a| a ` |z| return (z,{=})" |:- t
+        ,testCase "FunType6"
+        . checks
+        $ let t = funTR (VarId "n")
+                        intT
+                        (funTR (VarId "s")
+                               intT
+                               (RetT (PairT (intTEq (IVarId "s"))
+                                            (intTEq (IVarId "n")))))
+          in "|a| |b| b ` |g| return (g,a)" |:- t
         ]
   ,testGroup "CompSub"
      [(testCase "BaseInc" . checks $
