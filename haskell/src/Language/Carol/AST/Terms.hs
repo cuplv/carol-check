@@ -29,6 +29,8 @@ class (RefDomain d, Eq (DVal d), Ord (DVal d))
 
 class (ValDomain d) => CompDomain e d where
   dCompSigR :: e -> ([(IVarId, ISort d)], ValT d, ValT d)
+  dCompOutput :: e -> Maybe (ValT d)
+  dCompInputs :: e -> Maybe (IVarId, ValT d) -> [(IVarId, ValT d)]
   dCompPretty :: e -> Val e d -> String
 
 data (CompDomain e d) => Val e d =

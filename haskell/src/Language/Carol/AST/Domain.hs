@@ -215,6 +215,12 @@ instance CompDomain StdCD StdVD where
   --   IntIssue -> ([SumT intDEffSum], UnitT)
   --   IntProduce -> ([SumT intDEffSum], UnitT)
   --   IntConsume -> ([SumT intDEffSum], UnitT)
+  dCompOutput = \case
+    IntAdd -> Just intT
+    IntInc -> Just intT
+  dCompInputs = \case
+    IntAdd -> \(Just (x,vt)) -> [(IVarId "n1",intT), (IVarId "n2",undefined)]
+    IntInc -> \(Just (x,vt)) -> undefined
   dCompSigR = \case
     IntAdd -> ([(IVarId "n1", intSort), (IVarId "n2", intSort)]
               ,PairT (intTEq (IVarId "n1")) (intTEq (IVarId "n2"))
