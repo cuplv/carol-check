@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 module Language.Carol.TypeCheck.SubCheck where
 
 import qualified Data.Map as Map
@@ -68,42 +70,36 @@ subCheckC :: (RefDomain d)
   -> CompT d
   -> StateT (Context d) (TErr d) ()
 subCheckC mt1 mt2 = case (mt1,mt2) of
+
   -- Exvar
   (ExCT b1,ExCT b2) | b1 == b2 -> return ()
+
   -- Pi elim
   (mt1,Idx a s mt2') -> do
     base %= CB.idxBind a s
     subCheckC mt1 mt2'
+
   -- { InstantiateL, InstantiateR+InstRSolve, Unit, etc. }
   (RetT vt1, RetT vt2) -> subCheckV vt1 vt2
-  -- { <:--> }
-  -- (FunT (Just (VarId x1)) xt1 rt1, FunT (Just (VarId x2)) xt2 rt2) -> do
-  --   -- Look at Dec-<:-Fun from LQ paper to fix this one once argument
-  --   -- refinement vars are added to the FunT.
-  --   -- 
-  --   -- It looks like the solution is to replace the variable in one to
-  --   -- match the other, and then use the stronger argument type to
-  --   -- verify the bodies.
-  --   subCheckV (addEqRef (IVarId x2) xt2) (addEqRef (IVarId x1) xt1)
 
-  --   base %= CB.varBind (VarId x2) (addEqRef (IVarId x1) xt2)
-  --   rt1' <- CB.substC' base (subiC (IVarId x1) (IVarId x2) rt1)
-  --   rt2' <- CB.substC' base rt2
-  --   subCheckC rt1' rt2'
-  --   -- base %>= CB.trimToVar (VarId x2)
-  (FunT Nothing xt1 rt1, FunT (Just (VarId x2)) xt2 rt2) -> do
-    subCheckV (addEqRef (IVarId x2) xt2) xt1
-    -- subCheckV xt2 xt1
-    base %= CB.varBind (VarId x2) xt1
-    rt1' <- CB.substC' base rt1
-    rt2' <- CB.substC' base rt2
-    subCheckC rt1' rt2'
-    -- base %>= CB.trimToVar (VarId x2)
-  (FunT _ xt1 rt1, FunT Nothing xt2 rt2) -> do
-    subCheckV xt2 xt1
-    rt1' <- CB.substC' base rt1
-    rt2' <- CB.substC' base rt2
-    subCheckC rt1' rt2'
+  -- { <:--> }
+  (FunT x1 vt1 mt1, FunT x2 vt2 mt2) -> do
+    -- This could be made cleaner by moving the attachVar logic into
+    -- FunT's own structure, by splitting FunT into a Forall (which
+    -- adds the varBind when checked) and FunT, and giving a function
+    -- for constructing a Forall.FunT of this form.
+    vt1' <- attachVar x1 vt1
+    vt2' <- attachVar x2 vt2
+    subCheckV vt2' vt1'
+    mt1' <- CB.substC' base mt1
+    mt2' <- CB.substC' base mt2
+    subCheckC mt1' mt2'
+
+    where attachVar mx vt = case mx of
+            Just (VarId x) -> do base %= CB.varBind (VarId x) vt
+                                 return $ addEqRef (IVarId x) vt
+            Nothing -> return vt
+
   -- InstantiateR (for all InstR rules except InstRSolve)
   (mt,ExCT b) -> zoom base $ instRC mt b
   _ -> lift.terr $ TCMismatch mt1 mt2

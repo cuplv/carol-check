@@ -122,14 +122,42 @@ unitTests = testGroup "Unit tests"
                         (RetT (PairT (intTEq (IVarId "x")) UnitT))
           in "|a| a ` |z| return (z,{=})" |:- t
         ,testCase "FunType6"
-        . checks
-        $ let t = funTR (VarId "n")
-                        intT
-                        (funTR (VarId "s")
-                               intT
-                               (RetT (PairT (intTEq (IVarId "s"))
-                                            (intTEq (IVarId "n")))))
-          in "|a| |b| b ` |g| return (g,a)" |:- t
+           . checks
+           $ let t = funTR (VarId "n")
+                           intT
+                           (funTR (VarId "s")
+                                  intT
+                                  (RetT (PairT (intTEq (IVarId "s"))
+                                               (intTEq (IVarId "n")))))
+             in "|a| |b| b ` |g| return (g,a)" |:- t
+        ,testCase "FunType6d" -- Double-layered annotation
+           . checks
+           $ let t = funTR (VarId "n")
+                           intT
+                           (funTR (VarId "s")
+                                  intT
+                                  (RetT (PairT (intTEq (IVarId "s"))
+                                               (intTEq (IVarId "n")))))
+                 p = "|a| |b| b ` |g| return (g,a)"
+             in (\m -> AnnoC (AnnoC m t) t) <$> pComp p
+        ,testCase "FunType6m"
+           . misses
+           $ let t = funTR (VarId "n")
+                           intT
+                           (funTR (VarId "s")
+                                  intT
+                                  (RetT (PairT (intTEq (IVarId "n"))
+                                               (intTEq (IVarId "s")))))
+             in "|a| |b| b ` |g| return (g,a)" |:- t
+        ,testCase "FunType6m2"
+           . misses
+           $ let t = funTR (VarId "n")
+                           intT
+                           (funTR (VarId "s")
+                                  unitT
+                                  (RetT (PairT (intTEq (IVarId "s"))
+                                               (intTEq (IVarId "n")))))
+             in "|a| |b| b ` |g| return (g,a)" |:- t
         ]
   ,testGroup "CompSub"
      [(testCase "BaseInc" . checks $
