@@ -256,6 +256,7 @@ quantifyContext (VarBind (VarId x) vt g) = do
   (ex,r) <- case vt of
               DsT t r -> do ex <- mkSym x t
                             return (ex,r)
+              -- _ -> liftIO (print (show vt)) >> undefined
   m <- quantifyContext g
   return $ M.insert (IVarId x) (ex,r) m
 -- quantifyContext (IdxBind (IVarId s) _ g) = do 

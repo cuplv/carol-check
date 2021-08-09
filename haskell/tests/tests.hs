@@ -92,7 +92,8 @@ unitTests = testGroup "Unit tests"
         ,testCase "FunType3"
          . checks
          $ let t = funTR (VarId "x")
-                         (intTEq (IVarId "x"))
+                         -- (intTEq (IVarId "x"))
+                         intT
                          (RetT (PairT (intTEq (IVarId "x")) UnitT))
            in "|x| return (x,{=})" |:- t
         ,testCase "FunType3m"

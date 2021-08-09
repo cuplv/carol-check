@@ -90,7 +90,14 @@ subCheckC mt1 mt2 = case (mt1,mt2) of
     rt1' <- CB.substC' base (subiC (IVarId x1) (IVarId x2) rt1)
     rt2' <- CB.substC' base rt2
     subCheckC rt1' rt2'
-    base %>= CB.trimToVar (VarId x2)
+    -- base %>= CB.trimToVar (VarId x2)
+  (FunT Nothing xt1 rt1, FunT (Just (VarId x2)) xt2 rt2) -> do
+    subCheckV (addEqRef (IVarId x2) xt2) xt1
+    base %= CB.varBind (VarId x2) xt1
+    rt1' <- CB.substC' base rt1
+    rt2' <- CB.substC' base rt2
+    subCheckC rt1' rt2'
+    -- base %>= CB.trimToVar (VarId x2)
   (FunT _ xt1 rt1, FunT Nothing xt2 rt2) -> do
     subCheckV xt2 xt1
     rt1' <- CB.substC' base rt1

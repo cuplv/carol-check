@@ -81,7 +81,7 @@ synthC m = case m of
     base %= CB.varBind x (ExVT a)
     checkC m' (ExCT b)
     base %>= CB.trimToVar x
-    return (FunT (Just (VarId (pretty a))) (ExVT a) (ExCT b))
+    return (FunT Nothing (ExVT a) (ExCT b))
   Let v abs -> synthC (Ap v (Fun abs))
   Bind m1 abs -> do
     ft <- synthC (Fun abs)
