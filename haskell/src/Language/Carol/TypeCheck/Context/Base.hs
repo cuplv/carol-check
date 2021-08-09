@@ -253,12 +253,18 @@ quantifyContext (ExValT (ExV (ExIdV a) (Just vt)) g) = do
 quantifyContext (ExValT _ g) = quantifyContext g
 quantifyContext (ExCompT _ g) = quantifyContext g
 quantifyContext (VarBind (VarId x) vt g) = do
-  (ex,r) <- case vt of
-              DsT t r -> do ex <- mkSym x t
-                            return (ex,r)
-              -- _ -> liftIO (print (show vt)) >> undefined
   m <- quantifyContext g
-  return $ M.insert (IVarId x) (ex,r) m
+  case vt of
+    DsT t r -> do ex <- mkSym x t
+                  return $ M.insert (IVarId x) (ex,r) m
+    _ -> return m
+  -- (ex,r) <- case vt of
+  --             DsT t r -> do ex <- mkSym x t
+  --                           return (ex,r)
+  --             ExVT i -> liftIO (print i) >> undefined
+  --             -- _ -> liftIO (print (show vt)) >> undefined
+  -- m <- quantifyContext g
+  -- return $ M.insert (IVarId x) (ex,r) m
 -- quantifyContext (IdxBind (IVarId s) _ g) = do 
 --   a <- forall s
 --   m <- quantifyContext g
