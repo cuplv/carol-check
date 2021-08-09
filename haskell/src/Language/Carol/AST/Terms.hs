@@ -13,6 +13,7 @@ module Language.Carol.AST.Terms
   , unit3
   , Comp (..)
   , CompDomain (..)
+  , dCompType
   , VarId
   ) where
 
@@ -29,9 +30,16 @@ class (RefDomain d, Eq (DVal d), Ord (DVal d))
 
 class (ValDomain d) => CompDomain e d where
   dCompSigR :: e -> ([(IVarId, ISort d)], ValT d, ValT d)
+  dCompSig :: e -> ([(IVarId, ValT d)], ValT d)
   dCompOutput :: e -> Maybe (ValT d)
   dCompInputs :: e -> Maybe (IVarId, ValT d) -> [(IVarId, ValT d)]
-  dCompPretty :: e -> Val e d -> String
+  dCompPretty :: e -> [Val e d] -> String
+
+dCompType :: (CompDomain e d) => e -> CompT d
+dCompType e = 
+  let f (IVarId x, vt) mt = FunT (Just$ VarId x) vt mt
+      (ins,out) = dCompSig e
+  in foldr f (RetT out) ins
 
 data (CompDomain e d) => Val e d =
     Var VarId
@@ -84,7 +92,7 @@ data (CompDomain e d) => Comp e d =
   | Pms (Val e d) (Map SumId (Abst e d))
   | Proj ProdId (Comp e d)
   | Ap (Val e d) (Comp e d)
-  | DsC e (Val e d) (Maybe VarId, Comp e d)
+  | DsC e [(Val e d)] (Maybe VarId, Comp e d)
   | AnnoC (Comp e d) (CompT d)
   deriving (Eq,Ord)
 
@@ -104,7 +112,7 @@ instance (Pretty d, Pretty (DRef d), CompDomain e d, Pretty (ISort d))
     Pms v mp -> "pm " ++ pretty v ++ " as {" ++ "..." ++ "}"
     Proj i m' -> show i ++ "`" ++ pretty m'
     Ap v m' -> pretty v ++ "`" ++ pretty m'
-    DsC e v (Just x,m') -> dCompPretty e v ++ " as " 
-                           ++ sha (x,m')
-    DsC e v (Nothing,m') -> dCompPretty e v ++ " |" 
-                            ++ pretty m'
+    DsC e vs (Just x,m') -> dCompPretty e vs ++ " as " 
+                            ++ sha (x,m')
+    DsC e vs (Nothing,m') -> dCompPretty e vs ++ " |" 
+                             ++ pretty m'

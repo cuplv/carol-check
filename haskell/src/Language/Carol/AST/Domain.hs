@@ -15,6 +15,7 @@ module Language.Carol.AST.Domain
   , intTGe'
   , intTR
   , intTEq
+  , intTEq'
   , intTEqAdd
   , intV
   , intSort
@@ -86,6 +87,7 @@ data EmptyCD
 
 instance (ValDomain d) => CompDomain EmptyCD d where
   dCompSigR = undefined
+  dCompSig = undefined
   dCompPretty = undefined
 
 data StdVD = IntT deriving (Eq,Ord)
@@ -104,7 +106,11 @@ instance Pretty IntObject where
   pretty (IntAddObj a b) = pretty a ++ " + " ++ pretty b
 
 instance RefDomain StdVD where
-  data DRef StdVD = LEQ IntObject | GEQ IntObject deriving (Show,Eq,Ord)
+  data DRef StdVD
+    = LEQ IntObject
+    | GEQ IntObject
+    | EQV IntObject
+    deriving (Show,Eq,Ord)
   data ISort StdVD = IntS deriving (Show,Eq,Ord)
   data DRSym StdVD = IntSym SInteger
   mkSym s IntT = RSym . IntSym <$> forall s
@@ -113,6 +119,8 @@ instance RefDomain StdVD where
                 return (\(RSym (IntSym v)) -> v .<= s)
     GEQ o -> do s <- mkobj o
                 return (\(RSym (IntSym v)) -> v .>= s)
+    EQV o -> do s <- mkobj o
+                return (\(RSym (IntSym v)) -> v .== s)
     where mkobj = \case
             Literal i -> Right $ literal (fromIntegral i)
             IntVar a -> case M.lookup a m of
@@ -124,16 +132,22 @@ instance RefDomain StdVD where
   subVar a (LEQ (IntVar a')) = if a == a'
                                then LEQ (IntVar a)
                                else LEQ (IntVar a')
-  subVar _ (LEQ n) = GEQ n
+  subVar _ (LEQ n) = LEQ n
   subVar a (GEQ (IntVar a')) = if a == a'
                                then GEQ (IntVar a)
                                else GEQ (IntVar a')
   subVar _ (GEQ n) = GEQ n
-  eqRef a = RefAnd (RefAtom $ GEQ (IntVar a))
-                   (RefAtom $ LEQ (IntVar a))
+  subVar a (EQV (IntVar a')) = if a == a'
+                                  then EQV (IntVar a)
+                                  else EQV (IntVar a')
+  subVar _ (EQV n) = EQV n
+  -- eqRef a = RefAnd (RefAtom $ GEQ (IntVar a))
+  --                  (RefAtom $ LEQ (IntVar a))
+  eqRef a = RefAtom $ EQV (IntVar a)
   subiDR x y = \case
     LEQ o -> LEQ $ subiO x y o
     GEQ o -> GEQ $ subiO x y o
+    EQV o -> EQV $ subiO x y o
     where subiO x y = \case
             IntVar x' | x == x' -> IntVar y
             IntVar x' -> IntVar x'
@@ -145,15 +159,17 @@ intSort = IntS
 instance Pretty (DRef StdVD) where
   pretty (LEQ n) = "ν ≤ " ++ pretty n
   pretty (GEQ n) = "ν ≥ " ++ pretty n
+  pretty (EQV n) = "ν = " ++ pretty n
 
 instance Pretty (ISort StdVD) where
   pretty IntS = "Int"
 
 instance ValDomain StdVD where
   data DVal StdVD = IntConst Int deriving (Show,Eq,Ord)
-  dValType (IntConst n) = (IntT, RefAnd 
-                                   (RefAtom $ GEQ (Literal n)) 
-                                   (RefAtom $ LEQ (Literal n)))
+  dValType (IntConst n) = (IntT, RefAtom$ EQV (Literal n))
+  -- dValType (IntConst n) = (IntT, RefAnd 
+  --                                  (RefAtom $ GEQ (Literal n)) 
+  --                                  (RefAtom $ LEQ (Literal n)))
 
 instance Pretty (DVal StdVD) where
   pretty (IntConst n) = show n
@@ -179,12 +195,19 @@ intTR low high = DsT IntT (RefAnd
                              (RefAtom $ LEQ (Literal high)))
 
 intTEq :: IVarId -> ValT StdVD
-intTEq a = DsT IntT (RefAnd (RefAtom $ GEQ (IntVar a))
-                            (RefAtom $ LEQ (IntVar a)))
+intTEq a = DsT IntT (RefAtom$ EQV (IntVar a))
+-- intTEq a = DsT IntT (RefAnd (RefAtom $ GEQ (IntVar a))
+--                             (RefAtom $ LEQ (IntVar a)))
+
+intTEq' :: IntObject -> ValT StdVD
+intTEq' a = DsT IntT (RefAtom$ EQV a)
+-- intTEq' a = DsT IntT (RefAnd (RefAtom $ GEQ a)
+--                              (RefAtom $ LEQ a))
 
 intTEqAdd :: Int -> Int -> ValT StdVD
-intTEqAdd x y = DsT IntT (RefAnd (RefAtom $ GEQ (IntAddObj (Literal x) (Literal y)))
-                                 (RefAtom $ LEQ (IntAddObj (Literal x) (Literal y))))
+intTEqAdd x y = DsT IntT (RefAtom$ EQV (IntAddObj (Literal x) (Literal y)))
+-- intTEqAdd x y = DsT IntT (RefAnd (RefAtom $ GEQ (IntAddObj (Literal x) (Literal y)))
+--                                  (RefAtom $ LEQ (IntAddObj (Literal x) (Literal y))))
 
 intV :: (CompDomain e StdVD) => Int -> Val e StdVD
 intV = DsV . IntConst
@@ -221,6 +244,14 @@ instance CompDomain StdCD StdVD where
   dCompInputs = \case
     IntAdd -> \(Just (x,vt)) -> [(IVarId "n1",intT), (IVarId "n2",undefined)]
     IntInc -> \(Just (x,vt)) -> undefined
+  dCompSig = \case
+    IntInc -> ([(IVarId "n1", intT)]
+              ,intTEq' (IntAddObj (IntVar$ IVarId "n1")
+                                  (Literal 1)))
+    IntAdd -> ([(IVarId "n1", intT)
+               ,(IVarId "n2", intT)]
+              ,intTEq' (IntAddObj (IntVar$ IVarId "n1")
+                                  (IntVar$ IVarId "n2")))
   dCompSigR = \case
     IntAdd -> ([(IVarId "n1", intSort), (IVarId "n2", intSort)]
               ,PairT (intTEq (IVarId "n1")) (intTEq (IVarId "n2"))

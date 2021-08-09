@@ -98,25 +98,37 @@ synthC m = case m of
   Ap v m -> do
     mt <- CB.substC' base =<< synthC m
     appSynth mt v
-  DsC d v (mx,m') -> do
-    let ([(IVarId var,sort)],vt,outVT) = dCompSigR d
-    -- base %= (\g -> foldr (\(a,s) -> CB.exIdx a s) g vars)
-    -- Here, we don't replace the index variables in vt with our
-    -- existentially quantified vars, because they are the same.  To
-    -- avoid namespace collisions, we should actually generate fresh
-    -- existential vars and then replace them accordingly.
-
-    vt' <- synthV v
-    subCheckV vt' vt
-    base %= CB.varBind (VarId var) vt'
-
-    -- checkV v vt
-    -- base %= CB.varBind (VarId var) vt
-
+  DsC d vs (mx,m') -> do
+    let (vts,vout) = dCompSig d
+    if length vs /= length vts
+       then lift.terr $ TOther "Wrong number of args to DsC."
+       else return ()
+    mapM_ (\(v,(IVarId x,vt)) -> do base %= CB.varBind (VarId x) vt
+                                    checkV v vt)
+          (zip vs vts)
     case mx of
-      Just x -> base %= CB.varBind x outVT
+      Just x -> base %= CB.varBind x vout
       Nothing -> return ()
     synthC m'
+
+    -- let ([(IVarId var,sort)],vt,outVT) = dCompSigR d
+    -- -- base %= (\g -> foldr (\(a,s) -> CB.exIdx a s) g vars)
+    -- -- Here, we don't replace the index variables in vt with our
+    -- -- existentially quantified vars, because they are the same.  To
+    -- -- avoid namespace collisions, we should actually generate fresh
+    -- -- existential vars and then replace them accordingly.
+
+    -- vt' <- synthV v
+    -- subCheckV vt' vt
+    -- base %= CB.varBind (VarId var) vt'
+
+    -- -- checkV v vt
+    -- -- base %= CB.varBind (VarId var) vt
+
+    -- case mx of
+    --   Just x -> base %= CB.varBind x outVT
+    --   Nothing -> return ()
+    -- synthC m'
   AnnoC m mt -> checkC m mt >> return mt
 
 -- | Synthesize a type for a closed computation (by running synthC
