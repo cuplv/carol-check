@@ -158,12 +158,18 @@ unitTests = testGroup "Unit tests"
                                   (RetT (PairT (intTEq (IVarId "s"))
                                                (intTEq (IVarId "n")))))
              in "|a| |b| b ` |g| return (g,a)" |:- t
+        ,testCase "FunType7"
+           . checks
+           $ let t = RetT (intTR 5 5)
+             in "5` 6` |a| |b| return b" |:- t
         ]
   ,testGroup "CompSub"
      [(testCase "BaseInc" . checks $
          "inc 1 as x| return x" |:- RetT intT)
      ,(testCase "RefInc1" . checks $
          "inc 3 as x| return x" |:- RetT (intTR 4 4))
+     ,(testCase "RefInc1m" . misses $
+         "inc 3 as x| return x" |:- RetT (intTR 5 5))
      ,(testCase "RefInc2" . checks $
          "|x| inc x as y| return y" |:- funT (intTR 4 4)
                                              (RetT (intTR 5 5)))

@@ -103,8 +103,9 @@ synthC m = case m of
     if length vs /= length vts
        then lift.terr $ TOther "Wrong number of args to DsC."
        else return ()
-    mapM_ (\(v,(IVarId x,vt)) -> do base %= CB.varBind (VarId x) vt
-                                    checkV v vt)
+    mapM_ (\(v,(IVarId x,vt)) -> do vtS <- synthV v
+                                    subCheckV vtS vt
+                                    base %= CB.varBind (VarId x) vtS)
           (zip vs vts)
     case mx of
       Just x -> base %= CB.varBind x vout
