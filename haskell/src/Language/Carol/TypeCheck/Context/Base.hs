@@ -15,6 +15,7 @@ module Language.Carol.TypeCheck.Context.Base
   , exIdx
   , trimToVar
   , substV
+  , substV'
   , substC
   , substC'
   , inb42
@@ -217,6 +218,12 @@ substC' :: (RefDomain d)
 substC' l mt = do g <- use l
                   lift $ substC g mt
 
+substV' :: (RefDomain d)
+        => Getting (Context d) s (Context d)
+        -> ValT d
+        -> StateT s (TErr d) (ValT d)
+substV' l mt = do g <- use l
+                  lift $ substV g mt
 onSnd :: (a -> b) -> (c1,c2,a) -> (c1,c2,b)
 onSnd f (c1,c2,a) = (c1,c2,f a)
 

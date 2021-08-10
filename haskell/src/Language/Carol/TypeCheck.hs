@@ -107,10 +107,19 @@ synthC m = case m of
                                     subCheckV vtS vt
                                     base %= CB.varBind (VarId x) vtS)
           (zip vs vts)
+
+    g <- use base
+    let (g',b) = CB.newExC g
+    base .= g'
+
     case mx of
       Just x -> base %= CB.varBind x vout
       Nothing -> return ()
-    synthC m'
+    checkC m' (ExCT b)
+    case mx of
+      Just x -> base %>= CB.trimToVar x
+      Nothing -> return ()
+    return (ExCT b)
 
     -- let ([(IVarId var,sort)],vt,outVT) = dCompSigR d
     -- -- base %= (\g -> foldr (\(a,s) -> CB.exIdx a s) g vars)
