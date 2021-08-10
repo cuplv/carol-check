@@ -38,7 +38,7 @@ synthV v = case v of
   Var (VarId x) -> do
     g <- use base
     case CB.isBound (VarId x) g of
-      Just t -> return (addEqRef (IVarId x) t)
+      Just t -> return t
       Nothing -> lift.terr $ TOther ("Unbound variable \""
                                      ++ show (VarId x) ++ "\"")
   Thunk m -> undefined

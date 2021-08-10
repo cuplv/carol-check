@@ -178,7 +178,7 @@ unitTests = testGroup "Unit tests"
      ,(testCase "BaseAddM". misses $
          "add 1, 3 as x| return x" |:- RetT unitT)
      ,(testCase "BaseAddM2" . misses $
-         "add 1, {=} as x| return x" |:- RetT intT)
+         "add 1, {=} as x| return 1" |:- RetT intT)
      ,(testCase "RefAdd" . checks $
          let t = (RetT (intTR 4 4))
          in "add 1, 3 as x| return x" |:- t)
