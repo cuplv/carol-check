@@ -164,16 +164,19 @@ unitTests = testGroup "Unit tests"
              in "5` 6` |a| |b| return b" |:- t
         ,testCase "FunType8a"
            . checks
-           $ let t = funT intT (RetT (PairT intT (intTR 5 5)))
-             in "|k| (5` |h| return h) to c| return (k,c)" |:- t
+           $ let t = RetT (intTR 5 5)
+             in "5` |h| return h" |:- t
         ,testCase "FunType8b"
+           . checks
+           $ let t = RetT (intTR 5 5)
+             in "(5` |h| return h) to c| return c" |:- t
+        ,testCase "FunType8c"
            . checks
            $ let t1 = funTR (VarId "x") intT (RetT (intTEq (IVarId "x")))
                  m1 = AnnoC (Fun (VarId "h", Ret (Var (VarId "h")))) t1
-                 t2 = funT intT (RetT (PairT intT (intTR 5 5)))
-                 m2 = Fun (VarId "k", Bind (Ap (intV 5) m1)
-                                           (VarId "c", Ret (Pair (Var (VarId "k"))
-                                                                 (Var (VarId "c")))))
+                 t2 = RetT (intTR 5 5)
+                 m2 = Bind (Ap (intV 5) m1)
+                           (VarId "c", Ret (Var (VarId "c")))
              in m2 -:- t2
         ]
   ,testGroup "CompSub"
